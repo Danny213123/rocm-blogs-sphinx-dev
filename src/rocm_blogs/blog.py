@@ -184,8 +184,9 @@ class Blog:
 
         return authors
 
-    def grab_authors(self, authors_list: List[Union[str, List[str]]]) -> str:
+    def grab_authors(self, authors_list: List[Union[str, List[str]]], blogs_directory) -> str:
         """Generate HTML links for authors, but only if their bio file exists."""
+        
         # Filter out invalid authors
         valid_authors = []
         for author in authors_list:
@@ -203,16 +204,14 @@ class Blog:
         # Process each author
         author_elements = []
         for author in valid_authors:
-            author_file_path = self._find_author_file(author)
-
-            if author_file_path:
+            # Check if author has a page using the new logic
+            author_filename = author.replace(' ', '-').lower()
+            author_file_path = pathlib.Path(blogs_directory) / f"authors/{author_filename}.md"
+            
+            if pathlib.Path.exists(author_file_path):
                 # Create HTML link if author file exists
-                file_basename = os.path.basename(author_file_path).replace(
-                    ".md", ".html"
-                )
-                author_elements.append(
-                    f'<a href="https://rocm.blogs.amd.com/authors/{file_basename}">{author}</a>'
-                )
+                author_link = f"https://rocm.blogs.amd.com/authors/{author_filename}.html"
+                author_elements.append(f'<a href="{author_link}">{author}</a>')
             else:
                 # Use plain text if no author file exists
                 author_elements.append(author)

@@ -16,12 +16,10 @@ from pathlib import Path
 
 from .._version import __version__ as PROJECT_VERSION
 
-# Project Information
 PROJECT_NAME = "ROCm Blogs Sphinx Extension"
 PROJECT_EMAIL = "Danny.Guan@amd.com"
 PROJECT_DESCRIPTION = "Sphinx extension for generating ROCm blog documentation"
 
-# Global variable to store the current log file path
 _current_log_file = None
 
 
@@ -33,9 +31,8 @@ def safe_write_log(file_path: str, message: str):
     try:
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(message)
-            f.flush()  # Ensure immediate write
+            f.flush()
     except (OSError, IOError) as e:
-        # Fallback to console if file write fails
         print(f"[LOG WRITE ERROR] {e}: {message.strip()}", file=sys.stderr)
 
 
@@ -95,7 +92,6 @@ def log_project_info(func):
     def wrapper(*args, **kwargs):
         log_file_path = create_universal_log()
 
-        # Print to console - this works regardless of logging package availability
         print(f"\n{PROJECT_NAME} v{PROJECT_VERSION}")
         if log_file_path:
             print(f"Universal log: {log_file_path}")
@@ -104,13 +100,10 @@ def log_project_info(func):
         start_time = time.time()
 
         try:
-            # Execute the function
             result = func(*args, **kwargs)
 
-            # Calculate duration
             duration = time.time() - start_time
 
-            # Log completion
             completion_msg = (
                 f"Setup completed successfully at: {datetime.now().isoformat()}\n"
             )
@@ -157,10 +150,8 @@ def append_to_universal_log(message: str):
         if not universal_logs:
             return
 
-        # Get the most recent log file
         latest_log = max(universal_logs, key=lambda x: x.stat().st_mtime)
 
-        # Append message with timestamp
         timestamp = datetime.now().strftime("%H:%M:%S")
         safe_write_log(str(latest_log), f"[{timestamp}] {message}\n")
 

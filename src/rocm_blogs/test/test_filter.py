@@ -17,10 +17,8 @@ def test_filter_criteria():
     """Test the filter criteria functionality in _process_category."""
     print("Testing filter criteria functionality in _process_category")
 
-    # Initialize ROCmBlogs
     rocm_blogs = ROCmBlogs()
 
-    # Find blogs directory
     blogs_directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), "blogs")
     if not os.path.exists(blogs_directory):
         blogs_directory = os.path.join(
@@ -54,7 +52,6 @@ def test_filter_criteria():
     pagination_css = ".pagination { display: flex; }"
     current_datetime = "2025-05-13 23:00:00"
 
-    # Call _process_category with the test category
     try:
         print("Calling _process_category with filter criteria")
         _process_category(

@@ -116,8 +116,11 @@
 
         navItems.forEach((item, i) => {
             item.classList.remove('active');
+            item.classList.remove('completed');
+            
             const progress = item.querySelector('.banner-slider__nav-progress');
             if (progress) {
+                // Reset all progress bars to 0%
                 progress.style.transition = 'none';
                 progress.style.width = '0%';
                 progress.offsetHeight;

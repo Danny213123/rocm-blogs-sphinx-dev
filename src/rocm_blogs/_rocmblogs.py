@@ -59,7 +59,6 @@ class ROCmBlogs:
                     "_rocmblogs",
                 )
 
-        # If no valid cache is available, perform a fresh scan.
         log_message(
             "info", "Scanning {root} for README.md files...", "general", "_rocmblogs"
         )
@@ -93,7 +92,6 @@ class ROCmBlogs:
         )
         self.blog_paths = readme_files
 
-        # Update the cache file with the fresh scan.
         with cache_file.open("w", encoding="utf-8") as f:
             for path in readme_files:
                 f.write(path + "\n")
@@ -387,13 +385,10 @@ class ROCmBlogs:
             blog = Blog(file_path, metadata)
             blog.set_file_path(file_path)
 
-            # Check for blog_title attribute
             if not hasattr(blog, "blog_title"):
-                # Try to extract title from filename
                 filename = os.path.basename(file_path)
                 dirname = os.path.basename(os.path.dirname(file_path))
 
-                # Use directory name as title if it's not a generic name
                 if dirname and dirname.lower() not in "blogs":
                     blog.blog_title = (
                         dirname.replace("-", " ").replace("_", " ").title()
@@ -405,7 +400,6 @@ class ROCmBlogs:
                         "_rocmblogs",
                     )
                 else:
-                    # Use filename without extension as title
                     blog.blog_title = (
                         os.path.splitext(filename)[0]
                         .replace("-", " ")
@@ -419,9 +413,7 @@ class ROCmBlogs:
                         "_rocmblogs",
                     )
 
-            # Check for date attribute
             if not hasattr(blog, "date") or blog.date is None:
-                # Try to extract date from file modification time
                 try:
                     mtime = os.path.getmtime(file_path)
                     blog.date = datetime.fromtimestamp(mtime)
@@ -432,7 +424,6 @@ class ROCmBlogs:
                         "_rocmblogs",
                     )
                 except Exception as date_error:
-                    # Use current date as fallback
                     blog.date = datetime.now()
                     log_message(
                         "info",
@@ -441,9 +432,7 @@ class ROCmBlogs:
                         "_rocmblogs",
                     )
 
-            # Check for category attribute
             if not hasattr(blog, "category") or not blog.category:
-                # Try to use parent directory name as category
                 parent_dir = os.path.basename(os.path.dirname(file_path))
                 if parent_dir and parent_dir.lower() not in "blogs":
                     blog.category = (
@@ -456,7 +445,6 @@ class ROCmBlogs:
                         "_rocmblogs",
                     )
                 else:
-                    # Use grandparent directory if parent is generic
                     grandparent_dir = os.path.basename(
                         os.path.dirname(os.path.dirname(file_path))
                     )
@@ -471,7 +459,6 @@ class ROCmBlogs:
                             "_rocmblogs",
                         )
                     else:
-                        # Default category
                         blog.category = "ROCm Blog"
                         log_message(
                             "info",
@@ -543,7 +530,6 @@ class ROCmBlogs:
                 try:
                     initial_count = len(self.blogs.blogs)
                     self.blogs.add_blog(blog)
-                    # Check if blog was actually added (not a duplicate)
                     if len(self.blogs.blogs) > initial_count:
                         added_count += 1
                     else:

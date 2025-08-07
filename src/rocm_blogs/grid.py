@@ -6,6 +6,7 @@ from PIL import Image
 from sphinx.util import logging as sphinx_logging
 
 from .logger.logger import *
+from .external_content import ExternalContent
 
 
 def generate_grid(ROCmBlogs, blog, lazy_load=False, use_og=False) -> str:
@@ -567,3 +568,106 @@ def generate_grid(ROCmBlogs, blog, lazy_load=False, use_og=False) -> str:
             except:
                 pass
         raise
+
+
+def generate_external_content_grid(external_content: ExternalContent) -> str:
+    """Generate a modern minimalist grid item for external content."""
+    
+    external_grid_template = """
+:::{{grid-item}}
+:class: external-content-grid-item
+
+<div class="external-content-card">
+    <div class="external-content-badge external">External</div>
+    
+    <div class="external-content-thumbnail">
+        {thumbnail_html}
+    </div>
+    
+    <div class="external-content-body">
+        <h3 class="external-content-header">
+            <a href="{url}" target="_blank" rel="noopener noreferrer">{title}</a>
+        </h3>
+        
+        <p class="external-content-description">{description}</p>
+        
+        <div class="external-content-meta">
+            <div class="external-content-date">
+                <span class="external-content-type-icon">{content_type_icon}</span>
+                <span>{date}</span>
+                {author_html}
+            </div>
+            
+            <div class="external-content-source">
+                <span class="external-content-source-domain">{source_domain}</span>
+            </div>
+        </div>
+    </div>
+</div>
+:::
+"""
+
+    if external_content.thumbnail:
+        thumbnail_html = f'<img src="{external_content.thumbnail}" alt="{external_content.title}" loading="lazy">'
+    else:
+        thumbnail_html = f'''<div class="external-content-thumbnail-placeholder">
+            {external_content.get_content_type_icon()}
+        </div>'''
+    
+    date_str = external_content.date.strftime("%b %d, %Y") if external_content.date else "No Date"
+    
+    author_html = f"<span> by {external_content.author}</span>" if external_content.author else ""
+    
+    return external_grid_template.format(
+        url=external_content.url,
+        title=external_content.title,
+        description=external_content.description,
+        date=date_str,
+        author_html=author_html,
+        source_domain=external_content.source_domain,
+        content_type_icon=external_content.get_content_type_icon(),
+        thumbnail_html=thumbnail_html
+    ).strip()
+
+
+def generate_mixed_grid_items(blog_items, external_items, max_items=None, external_ratio=0.3):
+    """
+    Generate mixed grid items combining internal blogs and external content.
+    
+    Args:
+        blog_items: List of internal blog objects
+        external_items: List of ExternalContent objects  
+        max_items: Maximum number of items to return
+        external_ratio: Ratio of external content (0.0 to 1.0)
+    """
+    if not external_items:
+        return [generate_grid(None, blog) for blog in blog_items[:max_items]]
+    
+    if not blog_items:
+        return [generate_external_content_grid(ext) for ext in external_items[:max_items]]
+    
+    total_items = max_items or (len(blog_items) + len(external_items))
+    external_count = int(total_items * external_ratio)
+    blog_count = total_items - external_count
+    
+    external_count = min(external_count, len(external_items))
+    blog_count = min(blog_count, len(blog_items))
+    
+    grid_items = []
+    
+    for blog in blog_items[:blog_count]:
+        try:
+            grid_items.append(generate_grid(None, blog))
+        except Exception as e:
+            log_message("warning", f"Failed to generate grid for blog: {e}")
+    
+    for ext in external_items[:external_count]:
+        try:
+            grid_items.append(generate_external_content_grid(ext))
+        except Exception as e:
+            log_message("warning", f"Failed to generate external content grid: {e}")
+    
+    import random
+    random.shuffle(grid_items)
+    
+    return grid_items

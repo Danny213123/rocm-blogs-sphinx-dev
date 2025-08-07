@@ -14,7 +14,6 @@ from sphinx.util import logging as sphinx_logging
 
 from .logger.logger import *
 
-# Global caches for performance optimization during blog processing
 _author_bio_cache: Dict[str, Dict[str, bool]] = {}
 _image_manifest_cache: Dict[str, Dict[str, str]] = {}
 _relative_path_cache: Dict[str, str] = {}
@@ -30,18 +29,15 @@ def build_image_manifest(blogs_directory: str) -> Dict[str, str]:
     manifest = {}
     blogs_path = pathlib.Path(blogs_directory)
 
-    # Define supported image file extensions for processing
     image_extensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"]
 
     for extension in image_extensions:
-        # Search within the dedicated images directory
         images_directory = blogs_path / "images"
         if images_directory.exists():
             for image_file in images_directory.glob(f"*{extension}"):
                 if image_file.is_file():
                     manifest[image_file.name.lower()] = str(image_file)
 
-        # Search within blog-specific subdirectories for embedded images
         for subdirectory in blogs_path.rglob("*"):
             if subdirectory.is_dir() and subdirectory.name not in [
                 "_static",
@@ -69,7 +65,6 @@ def cache_author_bio_existence(blogs_directory: str) -> Dict[str, bool]:
     if authors_directory.exists():
         for author_file in authors_directory.glob("*.md"):
             if author_file.is_file():
-                # Extract author name from filename and normalize formatting
                 author_name = author_file.stem.replace("-", " ").title()
                 author_cache[author_name.lower()] = True
 
@@ -80,23 +75,21 @@ def cache_author_bio_existence(blogs_directory: str) -> Dict[str, bool]:
 class Blog:
     """Represents a blog post with metadata and images."""
 
-    # Define date formats once as a class variable to avoid recreation
     DATE_FORMATS = [
-        "%d-%m-%Y",  # e.g. 8-08-2024
-        "%d/%m/%Y",  # e.g. 8/08/2024
-        "%d-%B-%Y",  # e.g. 8-August-2024
-        "%d-%b-%Y",  # e.g. 8-Aug-2024
-        "%d %B %Y",  # e.g. 8 August 2024
-        "%d %b %Y",  # e.g. 8 Aug 2024
-        "%d %B, %Y",  # e.g. 8 August, 2024
-        "%d %b, %Y",  # e.g. 8 Aug, 2024
-        "%B %d, %Y",  # e.g. August 8, 2024
-        "%b %d, %Y",  # e.g. Aug 8, 2024
-        "%B %d %Y",  # e.g. August 8 2024
-        "%b %d %Y",  # e.g. Aug 8 2024
+        "%d-%m-%Y",
+        "%d/%m/%Y",
+        "%d-%B-%Y",
+        "%d-%b-%Y",
+        "%d %B %Y",
+        "%d %b %Y",
+        "%d %B, %Y",
+        "%d %b, %Y",
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%B %d %Y",
+        "%b %d %Y"
     ]
 
-    # Month name normalization mapping
     MONTH_NORMALIZATION = {"Sept": "Sep"}
 
     def __init__(
@@ -109,7 +102,6 @@ class Blog:
         self.image_paths = []
         self.word_count = 0
 
-        # Dynamically assign attributes based on metadata dictionary contents
         for key, value in metadata.items():
             setattr(self, key, value)
 
@@ -144,10 +136,7 @@ class Blog:
         except (AttributeError, TypeError):
             pass
 
-        # Fallback: use the regular image path logic
-        # Convert the relative path from grab_image to absolute URL
         try:
-            # Create a temporary ROCmBlogs-like object for grab_image
             class TempROCmBlogs:
                 def __init__(self):
                     self.blogs_directory = (
@@ -159,7 +148,6 @@ class Blog:
             temp_rocmblogs = TempROCmBlogs()
             image_path = self.grab_image(temp_rocmblogs)
 
-            # Convert relative path to absolute URL
             if str(image_path).startswith("./"):
                 image_url = f"https://rocm.blogs.amd.com/{str(image_path)[2:]}"
             else:
@@ -179,7 +167,6 @@ class Blog:
             if og_description:
                 return og_description
 
-            # Try alternative description fields
             description = html_meta.get("description lang=en")
             if description:
                 return description
@@ -201,10 +188,8 @@ class Blog:
         except (AttributeError, TypeError):
             pass
 
-        # Fallback: use the regular href logic
         try:
             href = self.grab_href()
-            # Convert relative path to absolute URL
             if href.startswith("./"):
                 return f"https://rocm.blogs.amd.com{href[1:]}"
             elif href.startswith("/"):
@@ -281,10 +266,8 @@ class Blog:
         if not date_str:
             return None
 
-        # Normalize the date string
         date_str = self.normalize_date_string(date_str)
 
-        # Try each date format
         for fmt in self.DATE_FORMATS:
             try:
                 return datetime.strptime(date_str, fmt)
@@ -315,7 +298,6 @@ class Blog:
 
         log_message("info", f"Author type: {type(self.author)}", "general", "blog")
 
-        # Ensure authors is a list
         if isinstance(self.author, str):
             authors = list(self.author.split(", "))
 
@@ -327,7 +309,6 @@ class Blog:
         self, authors_list: List[Union[str, List[str]]], rocm_blogs
     ) -> str:
         """Generate HTML links for authors with bio files."""
-        # Filter out invalid authors
         valid_authors = []
         for author in authors_list:
             if isinstance(author, list):
@@ -341,19 +322,15 @@ class Blog:
         if not valid_authors:
             return ""
 
-        # Use cached author bio existence information
         author_cache = cache_author_bio_existence(rocm_blogs.blogs_directory)
 
-        # Process each author
         author_elements = []
         for author in valid_authors:
-            # Check if author has a page using cached information
             author_key = author.lower()
             if author_key in author_cache:
                 author_link = f"https://rocm.blogs.amd.com/authors/{author.replace(' ', '-').lower()}.html"
                 author_elements.append(f'<a href="{author_link}">{author}</a>')
             else:
-                # Use plain text if no author file exists
                 author_elements.append(author)
 
         return ", ".join(author_elements)
@@ -363,7 +340,6 @@ class Blog:
         image = getattr(self, "thumbnail", None)
 
         if not image:
-            # First check if generic.webp exists in blogs/images directory
             blogs_generic_webp = None
             if hasattr(rocmblogs, "blogs_directory") and rocmblogs.blogs_directory:
                 blogs_generic_webp_path = os.path.join(
@@ -372,7 +348,6 @@ class Blog:
                 if os.path.exists(blogs_generic_webp_path):
                     blogs_generic_webp = blogs_generic_webp_path
 
-            # Then check if generic.webp exists in static/images directory
             static_generic_webp_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)),
                 "static",
@@ -381,8 +356,6 @@ class Blog:
             )
             static_generic_webp = os.path.exists(static_generic_webp_path)
 
-            # Use blogs/images/generic.webp if available, otherwise use
-            # static/images/generic.webp
             if blogs_generic_webp:
                 self.image = "generic.webp"
                 self.save_image_path("generic.webp")
@@ -392,28 +365,23 @@ class Blog:
                 self.save_image_path("generic.webp")
                 return pathlib.Path("./images/generic.webp")
             else:
-                # Fall back to generic.jpg if no WebP version is available
                 self.image = "generic.jpg"
                 self.save_image_path("generic.jpg")
                 return pathlib.Path("./images/generic.jpg")
 
-        # Extract just the filename if a path is provided
         if "/" in image or "\\" in image:
             image = os.path.basename(image)
 
-        # Check if it's an absolute path
         if os.path.isabs(image) and os.path.exists(image):
             full_image_path = pathlib.Path(image)
             self.save_image_path(os.path.basename(str(full_image_path)))
             return self._get_relative_path(full_image_path, rocmblogs.blogs_directory)
 
-        # Find the image in various locations
         full_image_path = self._find_image_in_directories(
             image, rocmblogs.blogs_directory
         )
 
         if not full_image_path:
-            # Check if generic.webp exists
             generic_webp_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)),
                 "static",
@@ -429,7 +397,6 @@ class Blog:
                 self.save_image_path("generic.jpg")
                 return pathlib.Path("./images/generic.jpg")
 
-        # Save the image path and return the relative path
         image_name = os.path.basename(str(full_image_path))
         self.save_image_path(image_name)
 
@@ -442,11 +409,9 @@ class Blog:
         blog_dir = pathlib.Path(self.file_path).parent
         blogs_dir = pathlib.Path(blogs_directory)
 
-        # Check if there's a WebP version of the image
         image_base, image_ext = os.path.splitext(image)
         webp_image = image_base + ".webp"
 
-        # Define search paths in order of priority
         search_paths = [
             blog_dir / webp_image,
             blog_dir / "images" / webp_image,
@@ -491,7 +456,6 @@ class Blog:
             ]
         )
 
-        # Check each path
         for path in search_paths:
             if path.exists() and path.is_file():
                 if str(path).lower().endswith(".webp"):
@@ -503,7 +467,6 @@ class Blog:
                     )
                 return path
 
-        # Try partial matching in the global images directory
         images_dir = blogs_dir / "images"
         if images_dir.exists():
             webp_base = os.path.splitext(image)[0].lower()
@@ -517,8 +480,6 @@ class Blog:
                     )
                     return img_file
 
-            # If no WebP version found, try to find original image by partial
-            # matching
             image_base = os.path.splitext(image)[0].lower()
             for img_file in images_dir.glob("*"):
                 if img_file.is_file() and image_base in img_file.name.lower():
@@ -554,7 +515,6 @@ class Blog:
                                     webp_path, format="WEBP", quality=98, method=6
                                 )
 
-                                # Return the WebP version
                                 log_message(
                                     "info",
                                     f"Successfully converted {img_file} to WebP: {webp_path}",

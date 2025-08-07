@@ -25,11 +25,9 @@ from .utils import *
 def quickshare(blog_entry) -> str:
     """Generate social media sharing buttons for a blog post."""
     try:
-        # Load template files
         social_css = import_file("rocm_blogs.static.css", "social-bar.css")
         social_html = import_file("rocm_blogs.templates", "social-bar.html")
 
-        # Create base template with CSS
         social_bar_template = """
 <style>
 {CSS}
@@ -38,14 +36,12 @@ def quickshare(blog_entry) -> str:
 """
         social_bar = social_bar_template.format(CSS=social_css, HTML=social_html)
 
-        # Determine the blog URL
         if hasattr(blog_entry, "file_path"):
             blog_directory = os.path.basename(os.path.dirname(blog_entry.file_path))
             share_url = f"http://rocm.blogs.amd.com/artificial-intelligence/{blog_directory}/README.html"
         else:
             share_url = f"http://rocm.blogs.amd.com{blog_entry.grab_href()[1:]}"
 
-        # Get blog title and description
         blog_title = getattr(blog_entry, "blog_title", "No Title")
         title_with_suffix = f"{blog_title} | ROCm Blogs"
 
@@ -55,7 +51,6 @@ def quickshare(blog_entry) -> str:
                 "description lang=en", blog_description
             )
 
-        # Add debug info for test blogs
         if (
             hasattr(blog_entry, "file_path")
             and "test" in str(blog_entry.file_path).lower()
@@ -64,7 +59,6 @@ def quickshare(blog_entry) -> str:
                 f"\n<!-- {title_with_suffix} -->\n<!-- {blog_description} -->\n"
             )
 
-        # Replace placeholders with actual content
         social_bar = (
             social_bar.replace("{URL}", share_url)
             .replace("{TITLE}", title_with_suffix)
@@ -99,7 +93,6 @@ def _create_pagination_controls(
     pagination_template, current_page, total_pages, base_name
 ):
     """Create pagination controls for navigation between pages."""
-    # Create previous button
     if current_page > 1:
         previous_page = current_page - 1
         previous_file = (
@@ -113,7 +106,6 @@ def _create_pagination_controls(
     else:
         previous_button = '<span class="pagination-button disabled"> Prev</span>'
 
-    # Create next button
     if current_page < total_pages:
         next_page = current_page + 1
         next_file = f"{base_name}-page{next_page}.html"
@@ -121,7 +113,6 @@ def _create_pagination_controls(
     else:
         next_button = '<span class="pagination-button disabled">Next </span>'
 
-    # Fill in pagination template
     return (
         pagination_template.replace("{prev_button}", previous_button)
         .replace("{current_page}", str(current_page))
@@ -167,12 +158,10 @@ def _process_category(
 
     template_html = import_file("rocm_blogs.templates", template_name)
 
-    # If category_blogs is not provided, filter blogs based on filter_criteria
     if category_blogs is None:
         category_blogs = []
         all_blogs = rocm_blogs.blogs.get_blogs()
 
-        # If no filter criteria, use category_key to filter blogs
         if not filter_criteria:
             category_blogs = rocm_blogs.blogs.get_blogs_by_category(category_key)
             log_message(
@@ -200,11 +189,9 @@ def _process_category(
                 matches_all_criteria = True
 
                 for field, values in filter_criteria.items():
-                    # Convert single value to list for consistent handling
                     if not isinstance(values, list):
                         values = [values]
 
-                    # Get blog field value
                     if field == "category":
                         blog_value = getattr(blog, "category", "")
                         if blog_value not in values:
@@ -254,13 +241,10 @@ def _process_category(
                             if not vertical_str and hasattr(blog, "vertical"):
                                 vertical_str = getattr(blog, "vertical", "")
 
-                            # Split vertical string into list and strip
-                            # whitespace
                             blog_verticals = [
                                 v.strip() for v in vertical_str.split(",") if v.strip()
                             ]
 
-                            # Debug log
                             log_message(
                                 "debug",
                                 f"Blog '{getattr(blog, 'blog_title', 'Unknown')}' verticals: {blog_verticals}",
@@ -272,8 +256,6 @@ def _process_category(
                                     f"Blog '{getattr(blog, 'blog_title', 'Unknown')}' verticals: {blog_verticals}\n"
                                 )
 
-                            # Check if any of the blog's verticals match any of
-                            # the specified verticals
                             if not blog_verticals or not any(
                                 bv in values for bv in blog_verticals
                             ):
@@ -387,7 +369,6 @@ def _process_category(
                                     f"Blog '{getattr(blog, 'blog_title', 'Unknown')}' field '{field}' value '{blog_value}' matches one of {values}\n"
                                 )
 
-                # If blog matches all criteria, add it to category_blogs
                 if matches_all_criteria:
                     category_blogs.append(blog)
                     log_message(
@@ -412,7 +393,6 @@ def _process_category(
                     f"Found {len(category_blogs)} blogs matching filter criteria\n"
                 )
 
-    # If no blogs were found for the category, log a warning and return
     if not category_blogs and not filter_criteria:
         log_message(
             "warning",
@@ -436,7 +416,6 @@ def _process_category(
             log_file_handle.write(f"No blogs found for category: {category_name}\n")
         return
 
-    # Calculate total number of pages
     total_pages = max(
         1,
         (len(category_blogs) + CATEGORY_BLOGS_PER_PAGE - 1) // CATEGORY_BLOGS_PER_PAGE,
@@ -455,7 +434,6 @@ def _process_category(
 
     all_grid_items = _generate_lazy_loaded_grid_items(rocm_blogs, category_blogs)
 
-    # Check if any grid items were generated
     if not all_grid_items:
         log_message(
             "warning",
@@ -465,13 +443,11 @@ def _process_category(
         )
         return
 
-    # Generate each page
     for page_num in range(1, total_pages + 1):
         start_index = (page_num - 1) * CATEGORY_BLOGS_PER_PAGE
         end_index = min(start_index + CATEGORY_BLOGS_PER_PAGE, len(all_grid_items))
         page_grid_items = all_grid_items[start_index:end_index]
 
-        # Validate grid content before creating page
         if not page_grid_items:
             log_message(
                 "warning",
@@ -498,7 +474,6 @@ def _process_category(
 
         grid_content = "\n".join(fixed_grid_items)
 
-        # Additional validation: ensure grid content is meaningful
         if not grid_content or not grid_content.strip():
             log_message(
                 "warning",
@@ -516,13 +491,11 @@ def _process_category(
             pagination_template, page_num, total_pages, output_base
         )
 
-        # Add page suffix for pages after the first
         page_title_suffix = f" - Page {page_num}" if page_num > 1 else ""
         page_description_suffix = (
             f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
         )
 
-        # Replace placeholders in the template
         updated_html = template_html.replace("{grid_items}", grid_content).replace(
             "{datetime}", current_datetime
         )
@@ -540,7 +513,6 @@ def _process_category(
             current_page=page_num,
         )
 
-        # Final validation: ensure page content is not empty
         if not final_content or len(final_content.strip()) < 100:
             log_message(
                 "warning",
@@ -612,7 +584,6 @@ def _process_category(
                 f"Error writing to file {output_path}: {write_error}"
             ) from write_error
 
-        # verify the file was created successfully
         if not output_path.exists():
             log_message(
                 "error",
@@ -640,7 +611,6 @@ def _generate_grid_items(
     """Generate grid items in parallel using thread pool."""
 
     try:
-        # Debug: Log the parameters received by this function
         log_message(
             "debug",
             f"_generate_grid_items called with: max_items={max_items}, skip_used={skip_used}, use_og={use_og}, blog_count={len(blog_list)}",
@@ -648,7 +618,6 @@ def _generate_grid_items(
             "process",
         )
 
-        # Debug: Log the first few blog titles to identify which set of blogs this is
         if blog_list:
             first_few_titles = [
                 getattr(blog, "blog_title", "Unknown") for blog in blog_list[:3]
@@ -685,22 +654,17 @@ def _generate_grid_items(
                 "process",
             )
 
-        # Generate grid items in parallel with proper deduplication
         with ThreadPoolExecutor() as executor:
             grid_futures = {}
 
             for blog_entry in blog_list:
-                # Check if blog is already used (by ID for more reliable comparison)
                 blog_id = id(blog_entry)
                 blog_path = getattr(blog_entry, "file_path", None)
 
-                # Check both ID and file path for comprehensive deduplication
                 already_used = False
                 if skip_used:
-                    # Check by object ID
                     if any(id(used_blog) == blog_id for used_blog in used_blogs):
                         already_used = True
-                    # Also check by file path as backup
                     elif blog_path and any(
                         getattr(used_blog, "file_path", None) == blog_path
                         for used_blog in used_blogs
@@ -716,7 +680,6 @@ def _generate_grid_items(
                     )
                     continue
 
-                # Check if we've reached the maximum number of items
                 if item_count >= max_items:
                     log_message(
                         "debug",
@@ -726,7 +689,6 @@ def _generate_grid_items(
                     )
                     break
 
-                # Add to used_blogs list if skip_used is enabled
                 if skip_used:
                     used_blogs.append(blog_entry)
 
@@ -748,13 +710,11 @@ def _generate_grid_items(
                             "general",
                             "process",
                         )
-                        # Don't count as error - this is expected behavior for blogs without OpenGraph metadata
                         continue
 
-                    # Validate that grid result contains meaningful content
                     if (
                         len(grid_result.strip()) < 50
-                    ):  # Minimum meaningful grid content size
+                    ):
                         blog_entry = grid_futures[future]
                         log_message(
                             "debug",
@@ -781,10 +741,7 @@ def _generate_grid_items(
                         "process",
                     )
 
-        # Handle the case where no grid items were generated
         if not grid_items:
-            # If there were no blogs to process or all were skipped, just
-            # return an empty list
             if item_count == 0:
                 log_message(
                     "warning",
@@ -794,8 +751,6 @@ def _generate_grid_items(
                 )
                 return []
 
-            # If we tried to process blogs but none succeeded, log a warning
-            # but don't raise an error
             log_message(
                 "warning",
                 "No grid items were generated despite having blogs to process. Check for errors in the generate_grid function.",
@@ -810,7 +765,6 @@ def _generate_grid_items(
             )
             return []
 
-        # Log errors and completion status
         elif error_count > 0:
             log_message(
                 "warning",
@@ -867,7 +821,6 @@ def _generate_lazy_loaded_grid_items(rocm_blogs, blog_list):
         deduplicated_blog_list = []
         dedup_lock = threading.Lock()
 
-        # Thread-safe deduplication
         for blog in blog_list:
             blog_path = getattr(blog, "file_path", None)
             blog_title = getattr(blog, "blog_title", None)
@@ -892,7 +845,6 @@ def _generate_lazy_loaded_grid_items(rocm_blogs, blog_list):
             "process",
         )
 
-        # Check if lazy_load parameter is supported
         grid_params = inspect.signature(generate_grid).parameters
         if "lazy_load" not in grid_params:
             log_message(
@@ -910,7 +862,6 @@ def _generate_lazy_loaded_grid_items(rocm_blogs, blog_list):
                 skip_used=False,
             )
 
-        # Generate grid items with lazy loading
         for blog_entry in deduplicated_blog_list:
             try:
                 grid_html = generate_grid(rocm_blogs, blog_entry, lazy_load=True)
@@ -924,8 +875,7 @@ def _generate_lazy_loaded_grid_items(rocm_blogs, blog_list):
                     )
                     continue
 
-                # Validate that grid result contains meaningful content
-                if len(grid_html.strip()) < 50:  # Minimum meaningful grid content size
+                if len(grid_html.strip()) < 50:
                     error_count += 1
                     log_message(
                         "debug",
@@ -985,20 +935,16 @@ def process_single_blog(blog_entry, rocm_blogs):
         blog_directory = os.path.dirname(readme_file_path)
 
         if not hasattr(blog_entry, "author") or not blog_entry.author:
-            # Skip logging for performance - just return silently
             return
 
-        # OPTIMIZATION 1: Read file once and cache content
         with open(
             readme_file_path, "r", encoding="utf-8", errors="replace"
         ) as source_file:
             file_content = source_file.read()
             content_lines = file_content.splitlines(True)
 
-        # OPTIMIZATION 2: Restore essential image processing functionality
         webp_versions = {}
 
-        # Essential image handling with WebP conversion
         if hasattr(blog_entry, "thumbnail") and blog_entry.thumbnail:
             try:
                 blog_entry.grab_image(rocm_blogs)
@@ -1006,7 +952,6 @@ def process_single_blog(blog_entry, rocm_blogs):
                 if blog_entry.image_paths:
                     for i, image_path in enumerate(blog_entry.image_paths):
                         try:
-                            # Validate image path exists
                             if not os.path.exists(image_path):
                                 image_filename = os.path.basename(image_path)
                                 possible_paths = [
@@ -1028,12 +973,10 @@ def process_single_blog(blog_entry, rocm_blogs):
                                         break
 
                             if os.path.exists(image_path):
-                                # Check if WebP version already exists (created by grid generation)
                                 image_filename = os.path.basename(image_path)
                                 name_without_ext = os.path.splitext(image_filename)[0]
                                 webp_filename = f"{name_without_ext}.webp"
 
-                                # Check multiple possible locations for WebP version
                                 webp_locations = [
                                     os.path.join(
                                         rocm_blogs.blogs_directory,
@@ -1060,7 +1003,6 @@ def process_single_blog(blog_entry, rocm_blogs):
                                         break
 
                                 if webp_found:
-                                    # Use existing WebP version
                                     blog_entry.image_paths[i] = webp_destination
                                     log_message(
                                         "info",
@@ -1069,7 +1011,6 @@ def process_single_blog(blog_entry, rocm_blogs):
                                         "process",
                                     )
                                 else:
-                                    # WebP doesn't exist, create it for consistency with grid
                                     webp_destination = os.path.join(
                                         rocm_blogs.blogs_directory,
                                         "_images",
@@ -1097,7 +1038,6 @@ def process_single_blog(blog_entry, rocm_blogs):
                                             "general",
                                             "process",
                                         )
-                                        # Fall back to copying original file
                                         original_destination = os.path.join(
                                             rocm_blogs.blogs_directory,
                                             "_images",
@@ -1130,13 +1070,10 @@ def process_single_blog(blog_entry, rocm_blogs):
                     "process",
                 )
 
-        # OPTIMIZATION 4: Reduce logging overhead - only log errors
         try:
             word_count = count_words_in_markdown(file_content)
             blog_entry.set_word_count(word_count)
-            # Skip word count logging for performance
         except Exception:
-            # Silent fail for performance - word count is not critical
             blog_entry.set_word_count(0)
 
         try:
@@ -1147,7 +1084,6 @@ def process_single_blog(blog_entry, rocm_blogs):
             blog_language = getattr(blog_entry, "language", "en")
             blog_category = getattr(blog_entry, "category", "blog")
             blog_tags = getattr(blog_entry, "tags", "")
-            # Extract market verticals from metadata or auto-assign from tags
             market_verticals = []
             if hasattr(blog_entry, "metadata") and blog_entry.metadata:
                 try:
@@ -1162,21 +1098,17 @@ def process_single_blog(blog_entry, rocm_blogs):
                 except (AttributeError, KeyError):
                     pass
 
-            # If no market verticals found in metadata, try automatic assignment from tags
             if not market_verticals or market_verticals == [""]:
                 if blog_tags:
                     try:
-                        # Import the classification function from metadata.py
                         from .metadata import classify_blog_tags
 
-                        # Get automatic vertical classification
                         classification_result = classify_blog_tags(blog_tags)
 
                         if classification_result and classification_result.get(
                             "vertical_counts"
                         ):
                             vertical_counts = classification_result["vertical_counts"]
-                            # Get all verticals with non-zero scores
                             auto_verticals = [
                                 v for v, score in vertical_counts.items() if score > 0
                             ]
@@ -1196,7 +1128,6 @@ def process_single_blog(blog_entry, rocm_blogs):
                             "process",
                         )
 
-            # Format market verticals for display
             if not market_verticals or market_verticals == [""]:
                 market_vertical = "No Market Vertical"
             else:
@@ -1278,7 +1209,6 @@ def process_single_blog(blog_entry, rocm_blogs):
             if has_valid_author:
                 modified_author_template = author_attribution_template
             else:
-                # Create a modified template without "by {authors_string}"
                 modified_author_template = author_attribution_template.replace(
                     "<span> {date} by {authors_string}.</span>", "<span> {date}</span>"
                 )

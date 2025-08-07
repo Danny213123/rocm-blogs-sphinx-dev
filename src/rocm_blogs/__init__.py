@@ -28,7 +28,6 @@ try:
     LOGGING_AVAILABLE = True
     PROFILING_AVAILABLE = True
 except ImportError:
-    # Fallback if logging package is not available
     LOGGING_AVAILABLE = False
     PROFILING_AVAILABLE = False
     get_logger = lambda *args, **kwargs: None
@@ -114,7 +113,6 @@ def log_total_build_time(sphinx_app, build_exception):
         accounted_time = sum(_BUILD_PHASES.values())
         _BUILD_PHASES["other"] = max(0, total_elapsed_time - accounted_time)
 
-        # Format and log the timing summary
         _log_timing_summary(total_elapsed_time)
 
         if build_exception:
@@ -187,12 +185,10 @@ def _create_build_timing_summary_file(total_elapsed_time, phases_to_display):
                         f"{padded_name} {phase_duration:.2f} seconds ({percentage:.1f}%)\n"
                     )
 
-            # Write summary statistics
             f.write("\n" + "-" * 50 + "\n")
             f.write("Summary Statistics:\n")
             f.write("-" * 50 + "\n")
 
-            # Calculate some basic statistics
             phase_times = [
                 _BUILD_PHASES.get(phase_key, 0)
                 for phase_key, _ in phases_to_display
@@ -205,7 +201,6 @@ def _create_build_timing_summary_file(total_elapsed_time, phases_to_display):
                     f"Average phase time: {sum(phase_times) / len(phase_times):.2f} seconds\n"
                 )
 
-            # Write detailed phase data in JSON format for potential analysis
             f.write("\n" + "-" * 50 + "\n")
             f.write("Detailed Phase Data (JSON):\n")
             f.write("-" * 50 + "\n")
@@ -254,7 +249,6 @@ def _create_build_timing_summary_file(total_elapsed_time, phases_to_display):
 def _log_timing_summary(total_elapsed_time):
     """Format and log the timing summary for all build phases."""
     try:
-        # Define the phases to display and their display names
         phases_to_display = [
             ("setup", "Setup phase"),
             ("update_index", "Index update phase"),
@@ -347,7 +341,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     phase_start_time = time.time()
     phase_name = "update_author_files"
 
-    # find author files
 
     rocm_blogs.find_author_files()
     rocm_blogs.blogs.blogs_authors
@@ -373,7 +366,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     for author in rocm_blogs.blogs.blogs_authors:
         log_message("info", f"Processing author: {author}", "general", "__init__")
 
-        # COMPREHENSIVE AUTHOR DEBUGGING - START
         safe_log_write(log_file_handle, f"\n" + "=" * 80 + "\n")
         safe_log_write(
             log_file_handle, f"Preparing grid generation for author [{author}]\n"
@@ -408,13 +400,11 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             with author_file_path.open("r", encoding="utf-8") as author_file:
                 author_content = author_file.read()
 
-            # Get all blogs by author and filter to only include actual blog posts
             all_author_blogs = rocm_blogs.blogs.get_blogs_by_author(author)
             author_blogs = []
             skipped_count = 0
 
             for blog in all_author_blogs:
-                # Check if this is a genuine blog post (has the blogpost flag set to true)
                 if hasattr(blog, "blogpost") and blog.blogpost:
                     author_blogs.append(blog)
                     safe_log_write(
@@ -439,7 +429,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Filtered out {skipped_count} non-blog README files for author [{author}], kept {len(author_blogs)} genuine blog posts\n",
             )
 
-            # Log the blogs for this author
             blog_titles = [
                 getattr(blog, "blog_title", "Unknown Title") for blog in author_blogs
             ]
@@ -453,7 +442,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
             author_blogs.sort(key=lambda x: x.date, reverse=True)
 
-            # DETAILED BLOG OBJECT INSPECTION
             safe_log_write(
                 log_file_handle, f"DETAILED BLOG INSPECTION FOR AUTHOR [{author}]:\n"
             )
@@ -470,13 +458,12 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     f"File Path: {getattr(blog, 'file_path', 'NO FILE PATH')}\n",
                 )
 
-                # Print ALL attributes of the blog object
                 safe_log_write(log_file_handle, f"\nALL BLOG ATTRIBUTES:\n")
                 for attr_name in dir(blog):
-                    if not attr_name.startswith("_"):  # Skip private attributes
+                    if not attr_name.startswith("_"):
                         try:
                             attr_value = getattr(blog, attr_name)
-                            if not callable(attr_value):  # Skip methods
+                            if not callable(attr_value):
                                 safe_log_write(
                                     log_file_handle,
                                     f"  {attr_name}: {repr(attr_value)}\n",
@@ -487,7 +474,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                                 f"  {attr_name}: ERROR - {attr_error}\n",
                             )
 
-                # Print the complete metadata structure
                 safe_log_write(log_file_handle, f"\nCOMPLETE METADATA STRUCTURE:\n")
                 if hasattr(blog, "metadata") and blog.metadata:
                     try:
@@ -506,7 +492,6 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 else:
                     safe_log_write(log_file_handle, f"NO METADATA FOUND\n")
 
-                # Test the OpenGraph functions directly
                 safe_log_write(log_file_handle, f"\nTESTING OPENGRAPH FUNCTIONS:\n")
                 try:
                     og_image = blog.grab_og_image()
@@ -547,13 +532,11 @@ def update_author_files(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"\nCalling _generate_grid_items with use_og=True for author [{author}]\n",
             )
             safe_log_write(log_file_handle, f"=" * 80 + "\n\n")
-            # COMPREHENSIVE AUTHOR DEBUGGING - END
 
             author_grid_items = _generate_grid_items(
                 rocm_blogs, author_blogs, 999, [], False, True
             )
 
-            # copy all blog images to authors/images directory
             for blog in author_blogs:
                 blog_images = blog.image_paths
                 for image in blog_images:
@@ -636,7 +619,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     phase_start_time = time.time()
     phase_name = "blog_statistics"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
     try:
@@ -648,7 +630,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
         log_message("info", "Generating blog statistics page...", "general", "__init__")
 
-        # Load templates and styles
         blog_statistics_css = import_file(
             "rocm_blogs.static.css", "blog_statistics.css"
         )
@@ -661,19 +642,15 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, "Successfully loaded templates and styles\n"
             )
 
-        # Get all blogs
         all_blogs = rocm_blogs.blogs.get_blogs()
 
         if log_file_handle:
             safe_log_write(log_file_handle, f"Retrieved {len(all_blogs)} total blogs\n")
 
-        # Filter blogs to only include real blog posts
         filtered_blogs = []
         skipped_count = 0
 
         for blog in all_blogs:
-            # Check if this is a genuine blog post (has the blogpost flag set
-            # to true)
             if hasattr(blog, "blogpost") and blog.blogpost:
                 filtered_blogs.append(blog)
                 if log_file_handle:
@@ -708,7 +685,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Filtered out {skipped_count} non-blog README files, kept {len(filtered_blogs)} genuine blog posts\n",
             )
 
-        # Replace all_blogs with filtered_blogs
         all_blogs = filtered_blogs
 
         if not all_blogs:
@@ -719,14 +695,12 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 safe_log_write(log_file_handle, f"WARNING: {warning_message}\n")
             return
 
-        # Generate author statistics
         author_stats = []
 
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating author statistics\n")
 
         for author, blogs in rocm_blogs.blogs.blogs_authors.items():
-            # Filter to only include genuine blog posts with blogpost flag
             genuine_blogs = [
                 blog for blog in blogs 
                 if hasattr(blog, "blogpost") and blog.blogpost
@@ -749,7 +723,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 genuine_blogs, key=lambda b: b.date if b.date else datetime.min, reverse=True
             )
 
-            # Get latest and first blog
             latest_blog = sorted_blogs[0] if sorted_blogs else None
             first_blog = sorted_blogs[-1] if sorted_blogs else None
 
@@ -758,7 +731,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
             safe_log_write(log_file_handle, f"Processing author: {author}\n")
 
-            # check if author has a page
             if pathlib.Path.exists(
                 Path(rocm_blogs.blogs_directory)
                 / f"authors/{author.replace(' ', '-').lower()}.md"
@@ -769,7 +741,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
             safe_log_write(log_file_handle, f"Author link: {author_link}\n")
 
-            # Create author statistics
 
             author_stat = {
                 "name": {
@@ -802,7 +773,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
             author_stats.append(author_stat)
 
-        # Sort authors by blog count (descending)
         author_stats.sort(key=lambda x: x["blog_count"], reverse=True)
 
         if log_file_handle:
@@ -811,7 +781,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated statistics for {len(author_stats)} authors\n",
             )
 
-        # Generate author table rows
         author_rows = []
 
         for author_stat in author_stats:
@@ -820,7 +789,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             latest_blog = author_stat["latest_blog"]
             first_blog = author_stat["first_blog"]
 
-            # Create author name cell
 
             if author_name["href"]:
                 author_cell = f'<td class="author"><a href="{author_name["href"]}">{author_name["name"]}</a></td>'
@@ -833,7 +801,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
             first_blog_cell = f'<td class="date"><a href="{first_blog["href"]}" class="blog-title">{first_blog["title"]}</a><br><span class="date-text">{first_blog["date"]}</span></td>'
 
-            # Combine cells into a row
             row = f"<tr>{author_cell}{blog_count_cell}{latest_blog_cell}{first_blog_cell}</tr>"
             author_rows.append(row)
 
@@ -842,11 +809,9 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, f"Generated {len(author_rows)} author table rows\n"
             )
 
-        # Generate monthly blog data
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating monthly blog data\n")
 
-        # Count blogs by month
         monthly_counts = {}
 
         for blog in all_blogs:
@@ -854,10 +819,8 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 month_key = blog.date.strftime("%Y-%m")
                 monthly_counts[month_key] = monthly_counts.get(month_key, 0) + 1
 
-        # Get all months of data
         sorted_months = sorted(monthly_counts.keys())
 
-        # Format month labels
         monthly_labels = [
             datetime.strptime(month, "%Y-%m").strftime("%b %Y")
             for month in sorted_months
@@ -872,11 +835,9 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated monthly blog data with {len(monthly_blog_data['labels'])} months\n",
             )
 
-        # Generate category distribution data
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating category distribution data\n")
 
-        # Count blogs by category
         category_counts = {}
 
         for blog in all_blogs:
@@ -888,12 +849,10 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     category_counts.get("Uncategorized", 0) + 1
                 )
 
-        # Sort categories by count (descending)
         sorted_categories = sorted(
             category_counts.items(), key=lambda x: x[1], reverse=True
         )
 
-        # Combine small categories into "Other" if there are too many
         if len(sorted_categories) > 6:
             main_categories = sorted_categories[:5]
             other_count = sum(count for _, count in sorted_categories[5:])
@@ -916,11 +875,9 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated category distribution data with {len(category_distribution['labels'])} categories\n",
             )
 
-        # Generate monthly blog data
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating monthly blog data\n")
 
-        # Count blogs by month
         monthly_counts = {}
 
         for blog in all_blogs:
@@ -928,10 +885,8 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 month_key = blog.date.strftime("%Y-%m")
                 monthly_counts[month_key] = monthly_counts.get(month_key, 0) + 1
 
-        # Get all months of data
         sorted_months = sorted(monthly_counts.keys())
 
-        # Format month labels
         monthly_labels = [
             datetime.strptime(month, "%Y-%m").strftime("%b %Y")
             for month in sorted_months
@@ -946,29 +901,24 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated monthly blog data with {len(monthly_blog_data['labels'])} months\n",
             )
 
-        # Generate tag distribution data
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating tag distribution data\n")
 
-        # Count blogs by tag
         tag_counts = {}
 
         for blog in all_blogs:
             if hasattr(blog, "tags") and blog.tags:
-                # Handle tags as a list or as a comma-separated string
                 if isinstance(blog.tags, list):
                     tags = blog.tags
                 else:
                     tags = [tag.strip() for tag in blog.tags.split(",")]
 
                 for tag in tags:
-                    if tag:  # Skip empty tags
+                    if tag:
                         tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
-        # Sort tags by count (descending)
         sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
 
-        # Combine small tags into "Other" if there are too many
         if len(sorted_tags) > 15:
             main_tags = sorted_tags[:15]
             other_count = sum(count for _, count in sorted_tags[15:])
@@ -991,7 +941,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated tag distribution data with {len(tag_distribution['labels'])} tags\n",
             )
 
-        # Combine all statistics data
         statistics_data = {
             "authors": author_stats,
             "categories": category_distribution,
@@ -999,7 +948,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             "tags": tag_distribution,
         }
 
-        # Replace placeholders in the template
         if log_file_handle:
             safe_log_write(log_file_handle, "Replacing placeholders in the template\n")
 
@@ -1010,7 +958,6 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             "{statistics_data}", json.dumps(statistics_data)
         )
 
-        # Create the statistics page content
         statistics_template = """---
 title: ROCm Blogs Statistics
 myst:
@@ -1032,7 +979,6 @@ myst:
             CSS=blog_statistics_css, HTML=updated_html
         )
 
-        # Write the statistics page
         output_path = Path(rocm_blogs.blogs_directory) / "blog_statistics.md"
 
         if log_file_handle:
@@ -1043,7 +989,6 @@ myst:
         with output_path.open("w", encoding="utf-8") as output_file:
             output_file.write(final_content)
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES["blog_statistics"] = phase_duration
         log_message(
@@ -1074,7 +1019,6 @@ myst:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from stats_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -1096,10 +1040,8 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
     phase_start_time = time.time()
     phase_name = "update_index"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_blogs_processed = 0
     total_blogs_successful = 0
     total_blogs_error = 0
@@ -1107,7 +1049,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
     total_blogs_skipped = 0
     all_error_details = []
 
-    # Enhanced timing tracking for each major operation
     operation_timings = {}
 
     def track_operation_time(operation_name, start_time):
@@ -1131,11 +1072,11 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             safe_log_write(log_file_handle, "Starting index file update process\n")
             safe_log_write(log_file_handle, "-" * 80 + "\n\n")
 
-        # Load templates and styles
         operation_start = time.time()
         template_html = import_file("rocm_blogs.templates", "index.html")
         css_content = import_file("rocm_blogs.static.css", "index.css")
         banner_css_content = import_file("rocm_blogs.static.css", "banner-slider.css")
+        external_sidebar_css = import_file("rocm_blogs.static.css", "external_sidebar.css")
         track_operation_time("load_templates_and_styles", operation_start)
 
         if log_file_handle:
@@ -1143,12 +1084,10 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 log_file_handle, "Successfully loaded templates and styles\n"
             )
 
-        # Format the index template
         index_template = INDEX_TEMPLATE.format(
-            CSS=css_content, BANNER_CSS=banner_css_content, HTML=template_html
+            CSS=css_content, BANNER_CSS=banner_css_content, EXTERNAL_SIDEBAR_CSS=external_sidebar_css, HTML=template_html
         )
 
-        # Initialize ROCmBlogs instance if not provided
         operation_start = time.time()
         if rocm_blogs is None:
             rocm_blogs = ROCmBlogs()
@@ -1175,6 +1114,19 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         rocm_blogs.blogs_directory = str(blogs_directory)
         track_operation_time("initialize_rocm_blogs_instance", operation_start)
 
+        try:
+            external_content_start = time.time()
+            rocm_blogs.blogs.initialize_external_content(str(blogs_directory))
+            track_operation_time("initialize_external_content", external_content_start)
+            
+            log_message("info", "External content system initialized successfully", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, "External content system initialized\n")
+        except Exception as e:
+            log_message("warning", f"Failed to initialize external content: {e}", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, f"WARNING: External content initialization failed: {e}\n")
+
         if log_file_handle:
             safe_log_write(
                 log_file_handle, f"Found blogs directory: {blogs_directory}\n"
@@ -1191,7 +1143,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         rocm_blogs.create_blog_objects()
         track_operation_time("create_blog_objects", operation_start)
         
-        # Report duplicate statistics
         duplicate_stats = rocm_blogs.blogs.get_duplicate_statistics()
         log_message(
             "info",
@@ -1213,7 +1164,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"  - Unique blog titles: {duplicate_stats['unique_titles']}\n\n"
             )
         
-        # Check for potential duplicates that might have slipped through
         potential_duplicates = rocm_blogs.blogs.find_potential_duplicates()
         if potential_duplicates:
             log_message(
@@ -1227,7 +1177,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     log_file_handle,
                     f"Potential duplicates found ({len(potential_duplicates)} pairs):\n"
                 )
-                for dup_type, description, blog1, blog2 in potential_duplicates[:10]:  # Show first 10
+                for dup_type, description, blog1, blog2 in potential_duplicates[:10]:
                     safe_log_write(
                         log_file_handle,
                         f"  - {dup_type}: {description}\n"
@@ -1252,7 +1202,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         if log_file_handle:
             safe_log_write(log_file_handle, f"Created blog objects\n")
 
-        # Write blogs to CSV file for reference
         blogs_csv_path = Path(blogs_directory) / "blogs.csv"
         rocm_blogs.blogs.write_to_file(str(blogs_csv_path))
 
@@ -1299,7 +1248,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     f"Loaded {len(featured_blogs)} featured blogs from {features_csv_path}\n",
                 )
 
-            # Log details of loaded featured blogs
             if featured_blogs:
                 log_message(
                     "info",
@@ -1366,7 +1314,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         if log_file_handle:
             safe_log_write(log_file_handle, "Sorted blogs by category\n")
 
-        # Get all blogs
         all_blogs = rocm_blogs.blogs.get_blogs()
 
         log_message(
@@ -1396,7 +1343,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "__init__",
             )
 
-            # Debug the BlogHolder state
             blog_keys = list(rocm_blogs.blogs.blogs.keys())
             log_message(
                 "info",
@@ -1418,7 +1364,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "blog_loading",
                 "__init__",
             )
-            # Log sample blog titles
             sample_titles = [
                 getattr(blog, "blog_title", "No Title") for blog in all_blogs[:5]
             ]
@@ -1432,7 +1377,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         if log_file_handle:
             safe_log_write(log_file_handle, f"Retrieved {len(all_blogs)} total blogs\n")
 
-        # Filter blogs to only include real blog posts
         filtered_blogs = []
         skipped_count = 0
 
@@ -1473,7 +1417,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Filtered out {skipped_count} non-blog README files, kept {len(filtered_blogs)} genuine blog posts\n",
             )
 
-        # Replace all_blogs with filtered_blogs
         all_blogs = filtered_blogs
 
         if not all_blogs:
@@ -1530,7 +1473,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 log_file_handle, f"Featured blogs available: {len(featured_blogs)}\n"
             )
 
-            # Log details of featured blogs
             for i, blog in enumerate(featured_blogs):
                 blog_title = getattr(blog, "blog_title", "No Title")
                 log_message(
@@ -1568,7 +1510,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Selected {len(banner_blogs)} featured blogs for banner (max allowed: {BANNER_BLOGS_COUNT})\n",
             )
 
-            # Log the selected banner blogs in detail
             log_message("info", "Selected banner blogs:", "banner_blogs", "__init__")
             for i, blog in enumerate(banner_blogs):
                 blog_title = getattr(blog, "blog_title", "No Title")
@@ -1582,7 +1523,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     log_file_handle, f"  Selected banner blog {i+1}: '{blog_title}'\n"
                 )
 
-            # Check if we need fallback due to missing or already-used blogs
             log_message(
                 "info",
                 f"Checking fallback conditions for {len(banner_blogs)} featured blogs",
@@ -1590,11 +1530,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "__init__",
             )
 
-            # Only use fallback if:
-            # 1. We couldn't find all featured blogs from CSV (some blogs don't exist)
-            # 2. Some featured blogs are already used elsewhere on homepage
 
-            # Count original featured entries from CSV more safely
             original_featured_count = 0
             if features_csv_path.exists():
                 try:
@@ -1612,7 +1548,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                         "banner_blogs",
                         "__init__",
                     )
-                    original_featured_count = 4  # fallback to expected count
+                    original_featured_count = 4
             log_message(
                 "info",
                 f"Original featured CSV entries: {original_featured_count}, Successfully matched: {len(banner_blogs)}",
@@ -1620,7 +1556,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "__init__",
             )
 
-            # Check if we're missing blogs due to non-existence or other usage conflicts
             if len(banner_blogs) < original_featured_count:
                 missing_count = original_featured_count - len(banner_blogs)
                 log_message(
@@ -1634,7 +1569,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     f"Missing {missing_count} featured blogs - some may not exist or have conflicts\n",
                 )
 
-                # Only add fallback blogs to replace missing ones, not to reach BANNER_BLOGS_COUNT
                 featured_titles = {
                     blog.blog_title
                     for blog in banner_blogs
@@ -1651,14 +1585,12 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     f"Featured titles already selected: {featured_titles}\n",
                 )
 
-                # Find blogs not already in featured and not used elsewhere
                 eligible_blogs = []
                 for blog in all_blogs:
                     if (
                         hasattr(blog, "blog_title")
                         and blog.blog_title not in featured_titles
                     ):
-                        # Check if blog is used elsewhere on homepage by checking used_blogs list
                         blog_used_elsewhere = any(
                             hasattr(used_blog, "blog_title")
                             and getattr(used_blog, "blog_title") == blog.blog_title
@@ -1686,7 +1618,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     f"Found {len(eligible_blogs)} eligible blogs for fallback\n",
                 )
 
-                # Only add the missing count, not to reach BANNER_BLOGS_COUNT
                 additional_blogs = eligible_blogs[:missing_count]
 
                 log_message(
@@ -1700,7 +1631,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                     f"Adding {len(additional_blogs)} fallback blogs to replace missing featured blogs\n",
                 )
 
-                # Log details of additional blogs
                 for i, blog in enumerate(additional_blogs):
                     blog_title = getattr(blog, "blog_title", "No Title")
                     log_message(
@@ -1760,7 +1690,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Selected {len(banner_blogs)} recent blogs for banner\n",
             )
 
-        # Final summary
         log_message(
             "info",
             f"========== FINAL BANNER BLOGS SELECTION SUMMARY ==========",
@@ -1802,7 +1731,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Banner blog {i+1}: '{blog_title}' (Path: {blog_path})\n",
             )
 
-        # Add banner blogs to used list
         for blog in banner_blogs:
             used_blogs.append(blog)
             used_blog_ids.add(id(blog))
@@ -1817,10 +1745,9 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Added {len(banner_blogs)} banner blogs to deduplication list\n",
             )
 
-        # Generate banner slider content
         banner_content = _generate_banner_slider(
             rocm_blogs, banner_blogs, []
-        )  # Don't pass used_blogs to avoid double-adding
+        )
 
         if log_file_handle:
             safe_log_write(log_file_handle, "Banner slider generation completed\n")
@@ -1834,7 +1761,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 )
 
             try:
-                # Generate featured grid items (these will also be marked as used)
                 if len(featured_blogs) > 0:
                     featured_grid_items = _generate_grid_items(
                         rocm_blogs,
@@ -1885,7 +1811,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Excluding {len(used_blog_ids)} already used blogs from Recent Posts\n",
             )
 
-        # Filter out already used blogs from Recent Posts
         non_used_blogs = [blog for blog in all_blogs if id(blog) not in used_blog_ids]
 
         main_grid_items = _generate_grid_items(
@@ -1893,11 +1818,10 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             non_used_blogs,
             MAIN_GRID_BLOGS_COUNT,
             used_blogs,
-            True,  # Skip used blogs
+            True,
             False,
         )
 
-        # Update used_blog_ids with newly used blogs from Recent Posts section
         for blog in non_used_blogs[:MAIN_GRID_BLOGS_COUNT]:
             if id(blog) not in used_blog_ids:
                 used_blog_ids.add(id(blog))
@@ -1918,7 +1842,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "Filtering category blogs with deduplication (lowest priority)\n",
             )
 
-        # Filter out used blogs from category lists (now includes Recent Posts)
         ecosystem_blogs = [
             blog
             for blog in all_blogs
@@ -1964,22 +1887,19 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Generating category grid items with up to {CATEGORY_GRID_BLOGS_COUNT} blogs per category (lowest priority)\n",
             )
 
-        # Generate ecosystem grid items first and update used list
         ecosystem_grid_items = _generate_grid_items(
             rocm_blogs,
             ecosystem_blogs,
             CATEGORY_GRID_BLOGS_COUNT,
             used_blogs,
-            True,  # Skip used blogs
+            True,
             False,
         )
 
-        # Update used_blog_ids with newly used blogs from ecosystem section
         for blog in ecosystem_blogs[:CATEGORY_GRID_BLOGS_COUNT]:
             if id(blog) not in used_blog_ids:
                 used_blog_ids.add(id(blog))
 
-        # Re-filter application blogs to exclude newly used ecosystem blogs
         application_blogs_filtered = [
             blog for blog in application_blogs if id(blog) not in used_blog_ids
         ]
@@ -1989,16 +1909,14 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             application_blogs_filtered,
             CATEGORY_GRID_BLOGS_COUNT,
             used_blogs,
-            True,  # Skip used blogs
+            True,
             False,
         )
 
-        # Update used_blog_ids with newly used blogs from application section
         for blog in application_blogs_filtered[:CATEGORY_GRID_BLOGS_COUNT]:
             if id(blog) not in used_blog_ids:
                 used_blog_ids.add(id(blog))
 
-        # Re-filter software blogs to exclude newly used blogs from previous sections
         software_blogs_filtered = [
             blog for blog in software_blogs if id(blog) not in used_blog_ids
         ]
@@ -2008,7 +1926,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             software_blogs_filtered,
             CATEGORY_GRID_BLOGS_COUNT,
             used_blogs,
-            True,  # Skip used blogs
+            True,
             False,
         )
 
@@ -2034,9 +1952,51 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Final deduplication summary: {len(used_blog_ids)} blogs used across all sections\n",
             )
 
-        # Replace placeholders in the template
         if log_file_handle:
             safe_log_write(log_file_handle, "Replacing placeholders in the template\n")
+
+        external_content_html = ""
+        try:
+            external_items = rocm_blogs.blogs.get_recent_external_content(limit=6)
+            if external_items:
+                cards = []
+                for item in external_items:
+                    date_str = ""
+                    if item.date:
+                        date_str = item.date.strftime("%b %d, %Y")
+                    
+                    card_html = f'''
+                    <div class="external-content-card">
+                        <div class="external-content-header">
+                            <h3><a href="{item.url}" target="_blank" rel="noopener noreferrer">{item.title}</a></h3>
+                        </div>
+                        <p class="external-content-description">{item.description}</p>
+                        <div class="external-content-meta">
+                            <div class="external-content-author">{item.author}</div>
+                            {f'<div class="external-content-date">{date_str}</div>' if date_str else ''}
+                            <div class="external-content-source">{item.source_domain}</div>
+                        </div>
+                    </div>
+                    '''
+                    cards.append(card_html.strip())
+                
+                external_content_html = '\n'.join(cards)
+                log_message("info", f"Generated {len(cards)} external content cards", "external_content", "__init__")
+                if log_file_handle:
+                    safe_log_write(log_file_handle, f"Generated {len(cards)} external content cards\n")
+            else:
+                external_content_html = '<div class="external-content-card"><p>No external content available.</p></div>'
+                log_message("info", "No external content available", "external_content", "__init__")
+                if log_file_handle:
+                    safe_log_write(log_file_handle, "No external content available\n")
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            log_message("warning", f"Failed to generate external content: {e}\nTraceback: {error_details}", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, f"WARNING: Failed to generate external content: {e}\n")
+                safe_log_write(log_file_handle, f"Traceback: {error_details}\n")
+            external_content_html = ''
 
         updated_html = (
             index_template.replace("{grid_items}", "\n".join(main_grid_items))
@@ -2048,9 +2008,9 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             .replace("{software_grid_items}", "\n".join(software_grid_items))
             .replace("{featured_grid_items}", "\n".join(featured_grid_items))
             .replace("{banner_slider}", banner_content)
+            .replace("{external_content_items}", external_content_html)
         )
 
-        # Write the updated HTML to blogs/index.md
         output_path = Path(blogs_directory) / "index.md"
 
         if log_file_handle:
@@ -2061,7 +2021,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
 
         total_blogs_successful += 1
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES[phase_name] = phase_duration
         log_message(
@@ -2078,7 +2037,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             )
 
     except ROCmBlogsError:
-        # Re-raise ROCmBlogsError to stop the build
         _BUILD_PHASES[phase_name] = time.time() - phase_start_time
 
         if log_file_handle:
@@ -2101,7 +2059,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -2141,10 +2098,8 @@ def blog_generation(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
     phase_start_time = time.time()
     phase_name = "blog_generation"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_blogs_processed = 0
     total_blogs_successful = 0
     total_blogs_error = 0
@@ -2299,7 +2254,7 @@ def blog_generation(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 total_blogs_processed += 1
 
                 try:
-                    future.result()  # This will raise any exceptions from the thread
+                    future.result()
                     total_blogs_successful += 1
 
                     if log_file_handle and (
@@ -2336,12 +2291,11 @@ def blog_generation(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Parallel processing completed in {processing_duration:.2f} seconds\n",
             )
 
-        # Log completion statistics
         phase_end_time = time.time()
         phase_duration = phase_end_time - phase_start_time
         _BUILD_PHASES["blog_generation"] = phase_duration
 
-        error_threshold = total_blogs * 0.5  # Increased from 0.25 to 0.5
+        error_threshold = total_blogs * 0.5
         if total_blogs_error > error_threshold:
             error_message = f"Too many errors occurred during blog generation: {total_blogs_error} errors"
             log_message("critical", error_message, "general", "__init__")
@@ -2350,7 +2304,6 @@ def blog_generation(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             _CRITICAL_ERROR_OCCURRED = True
             raise ROCmBlogsError(error_message)
 
-        # Calculate performance metrics
         blogs_per_second = (
             total_blogs_successful / phase_duration if phase_duration > 0 else 0
         )
@@ -2397,7 +2350,6 @@ def blog_generation(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from generation_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -2453,7 +2405,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Log details about input blogs
         for i, blog in enumerate(banner_blogs):
             blog_title = getattr(blog, "blog_title", "No Title")
             blog_path = getattr(blog, "file_path", "No Path")
@@ -2479,7 +2430,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                 "__init__",
             )
 
-            # Check if this blog is already in used_blogs
             already_used = any(
                 hasattr(used_blog, "blog_title")
                 and getattr(used_blog, "blog_title") == blog_title
@@ -2496,7 +2446,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
         banner_navigation = []
         error_count = 0
 
-        # Generate banner slides and navigation items
         log_message(
             "info",
             "========== PROCESSING BANNER BLOGS ==========",
@@ -2504,7 +2453,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Track successful generations per index to maintain alignment
         successful_indices = []
 
         for i, blog in enumerate(banner_blogs):
@@ -2535,7 +2483,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                 )
 
                 if slide_html:
-                    # Log first 200 chars of slide HTML
                     preview = (
                         slide_html[:200] + "..."
                         if len(slide_html) > 200
@@ -2563,7 +2510,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                 )
 
                 if nav_html:
-                    # Log navigation HTML
                     log_message(
                         "debug",
                         f"Navigation HTML: {nav_html}",
@@ -2571,7 +2517,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                         "__init__",
                     )
 
-                # Verify the generated HTML contains expected index
                 if nav_html and f'data-index="{i}"' not in nav_html:
                     log_message(
                         "warning",
@@ -2580,7 +2525,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                         "__init__",
                     )
 
-                # Validate slide HTML
                 if not slide_html or not slide_html.strip():
                     log_message(
                         "error",
@@ -2603,7 +2547,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                         "banner_slider",
                         "__init__",
                     )
-                    # Check if slide contains essential elements
                     if '<div class="banner-slide' not in slide_html:
                         log_message(
                             "warning",
@@ -2612,7 +2555,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                             "__init__",
                         )
 
-                # Validate navigation HTML
                 if not nav_html or not nav_html.strip():
                     log_message(
                         "error",
@@ -2630,11 +2572,9 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                         "__init__",
                     )
 
-                # Successfully generated both slide and navigation
                 banner_slides.append(slide_html)
                 banner_navigation.append(nav_html)
                 successful_indices.append(i)
-                # Add banner blogs to the used list to avoid duplication
                 used_blogs.append(blog)
 
                 log_message(
@@ -2677,8 +2617,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                     "__init__",
                 )
 
-                # Log which step failed
-                # Clear any partial results to prevent misalignment
                 slide_html = None
                 nav_html = None
 
@@ -2689,7 +2627,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                     "__init__",
                 )
 
-        # Final validation and summary
         log_message(
             "info",
             "========== BANNER SLIDER GENERATION SUMMARY ==========",
@@ -2721,7 +2658,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "info", f"Errors encountered: {error_count}", "banner_slider", "__init__"
         )
 
-        # Log which blogs failed
         if len(banner_slides) < len(banner_blogs):
             failed_indices = [
                 i for i in range(len(banner_blogs)) if i not in successful_indices
@@ -2771,7 +2707,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                 "__init__",
             )
 
-        # Load banner slider template
         try:
             banner_slider_template = import_file(
                 "rocm_blogs.templates", "banner-slider.html"
@@ -2794,7 +2729,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             )
             return ""
 
-        # Fill in the banner slider template
         log_message(
             "info",
             f"Banner HTML generation - Slides: {len(banner_slides)}, Navigation: {len(banner_navigation)}",
@@ -2802,7 +2736,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Debug: Log first few characters of each slide to verify content
         for i, slide in enumerate(banner_slides):
             slide_preview = slide[:100] + "..." if len(slide) > 100 else slide
             log_message(
@@ -2812,7 +2745,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                 "__init__",
             )
 
-            # Check for active class
             if 'class="banner-slide active"' in slide:
                 log_message(
                     "debug",
@@ -2825,7 +2757,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
                     "debug", f"Slide {i+1} is NOT active", "banner_slider", "__init__"
                 )
 
-        # Join the slides and navigation HTML
         joined_slides = "\n".join(banner_slides)
         joined_navigation = "\n".join(banner_navigation)
 
@@ -2842,7 +2773,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Count occurrences of banner-slide in joined content
         slide_count_in_joined = joined_slides.count('<div class="banner-slide')
         nav_count_in_joined = joined_navigation.count("data-index=")
         log_message(
@@ -2852,7 +2782,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Debug: Log each individual slide being joined
         for i, slide in enumerate(banner_slides):
             slide_class_count = slide.count('<div class="banner-slide')
             slide_preview = (
@@ -2871,7 +2800,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "{banner_slides}", joined_slides
         ).replace("{banner_navigation}", joined_navigation)
 
-        # Verify final HTML content
         final_slide_count = banner_html.count('<div class="banner-slide')
         final_nav_count = banner_html.count("data-index=")
         log_message(
@@ -2881,7 +2809,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Log first 1000 chars of final HTML for debugging
         html_preview = (
             banner_html[:1000] + "..." if len(banner_html) > 1000 else banner_html
         )
@@ -2892,7 +2819,6 @@ def _generate_banner_slider(rocmblogs, banner_blogs, used_blogs):
             "__init__",
         )
 
-        # Log the actual slide content titles to verify all are present
         slide_titles = []
         for slide in banner_slides:
             title_start = slide.find('<h2 class="h--medium">')
@@ -2968,10 +2894,8 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     phase_start_time = time.time()
     phase_name = "metadata_generation"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_blogs_processed = 0
     total_blogs_successful = 0
     total_blogs_error = 0
@@ -2986,7 +2910,6 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
         log_message("info", "Running metadata generator...", "general", "__init__")
 
-        # Use the shared ROCmBlogs instance
         blogs_directory = rocm_blogs.blogs_directory
 
         if log_file_handle:
@@ -2994,11 +2917,9 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, f"Using shared blogs directory: {blogs_directory}\n"
             )
 
-        # Generate metadata
         if log_file_handle:
             safe_log_write(log_file_handle, "Calling metadata_generator function\n")
 
-        # The metadata_generator function already creates its own log file
         metadata_generator(rocm_blogs)
 
         if log_file_handle:
@@ -3007,7 +2928,6 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, "Sorting blogs by vertical after metadata generation\n"
             )
 
-        # Sort blogs by vertical after metadata generation is complete
         rocm_blogs.blogs.sort_blogs_by_vertical()
         log_message(
             "info",
@@ -3019,7 +2939,6 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         if log_file_handle:
             safe_log_write(log_file_handle, "Blog vertical sorting completed\n")
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES[phase_name] = phase_duration
         log_message(
@@ -3036,7 +2955,6 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             )
 
     except ROCmBlogsError:
-        # Re-raise ROCmBlogsError to stop the build
         _BUILD_PHASES[phase_name] = time.time() - phase_start_time
 
         if log_file_handle:
@@ -3059,7 +2977,6 @@ def run_metadata_generator(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from metadata_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -3104,17 +3021,14 @@ def process_templates_for_vertical(
         "software_grid_items": (
             "\n".join(software_grid_items) if software_grid_items else ""
         ),
-        # Boolean flags for conditional rendering
         "has_recent_blogs": bool(main_grid_items),
         "has_eco_blogs": bool(ecosystem_grid_items),
         "has_application_blogs": bool(application_grid_items),
         "has_software_blogs": bool(software_grid_items),
     }
 
-    # Create a Jinja2 template from the template string
     jinja_template = Template(template_string)
 
-    # Render the template with the context
     return jinja_template.render(**context)
 
 
@@ -3124,10 +3038,8 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     phase_start_time = time.time()
     phase_name = "update_posts"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_blogs_processed = 0
     total_blogs_successful = 0
     total_blogs_error = 0
@@ -3136,7 +3048,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     total_pages_created = 0
     all_error_details = []
 
-    # Configuration
     BLOGS_PER_PAGE = POST_BLOGS_PER_PAGE
 
     try:
@@ -3144,7 +3055,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             safe_log_write(log_file_handle, "Starting posts file generation process\n")
             safe_log_write(log_file_handle, "-" * 80 + "\n\n")
 
-        # Load templates and styles
         template_html = import_file("rocm_blogs.templates", "posts.html")
         pagination_template = import_file("rocm_blogs.templates", "pagination.html")
         css_content = import_file("rocm_blogs.static.css", "index.css")
@@ -3155,7 +3065,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, "Successfully loaded templates and styles\n"
             )
 
-        # Use the shared ROCmBlogs instance
         blogs_directory = rocm_blogs.blogs_directory
 
         if log_file_handle:
@@ -3163,7 +3072,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, f"Using shared blogs directory: {blogs_directory}\n"
             )
 
-        # Get all blogs first
         all_blogs = rocm_blogs.blogs.get_blogs()
 
         if log_file_handle:
@@ -3219,7 +3127,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         if log_file_handle:
             safe_log_write(log_file_handle, "Sorted blogs by date (newest first)\n")
 
-        # Get all filtered blogs and calculate pagination
         all_blogs = sorted_blogs
         total_blogs = len(all_blogs)
         total_pages = max(1, (total_blogs + BLOGS_PER_PAGE - 1) // BLOGS_PER_PAGE)
@@ -3244,7 +3151,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
         all_grid_items = _generate_lazy_loaded_grid_items(rocm_blogs, all_blogs)
 
-        # Check if any grid items were generated
         if not all_grid_items:
             warning_message = "No grid items were generated for posts pages. Skipping page generation."
             log_message("warning", warning_message, "general", "__init__")
@@ -3260,15 +3166,12 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, f"Generated {len(all_grid_items)} grid items\n"
             )
 
-        # Current datetime for template
         current_datetime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        # Generate each page
         if log_file_handle:
             safe_log_write(log_file_handle, "Generating individual pages\n")
 
         for page_num in range(1, total_pages + 1):
-            # Get grid items for this page
             start_index = (page_num - 1) * BLOGS_PER_PAGE
             end_index = min(start_index + BLOGS_PER_PAGE, len(all_grid_items))
             page_grid_items = all_grid_items[start_index:end_index]
@@ -3280,18 +3183,15 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     f"Processing page {page_num}/{total_pages} with {len(page_grid_items)} grid items\n",
                 )
 
-            # Create pagination controls
             pagination_controls = _create_pagination_controls(
                 pagination_template, page_num, total_pages, "posts"
             )
 
-            # Add page suffix for pages after the first
             page_title_suffix = f" - Page {page_num}" if page_num > 1 else ""
             page_description_suffix = (
                 f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
             )
 
-            # Validate grid content before creating page
             if not page_grid_items:
                 log_message(
                     "warning",
@@ -3306,7 +3206,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     )
                 continue
 
-            # Additional validation: ensure grid content is meaningful
             if not grid_content or not grid_content.strip():
                 log_message(
                     "warning",
@@ -3321,7 +3220,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     )
                 continue
 
-            # Create the final page content
             page_content = POSTS_TEMPLATE.format(
                 CSS=css_content,
                 PAGINATION_CSS=pagination_css,
@@ -3334,7 +3232,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 current_page=page_num,
             )
 
-            # Final validation: ensure page content is not empty
             if not page_content or len(page_content.strip()) < 100:
                 log_message(
                     "warning",
@@ -3349,7 +3246,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     )
                 continue
 
-            # Determine output filename and write the file
             output_filename = (
                 "posts.md" if page_num == 1 else f"posts-page{page_num}.md"
             )
@@ -3371,7 +3267,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 "__init__",
             )
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES["update_posts"] = phase_duration
         log_message(
@@ -3402,7 +3297,6 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from page_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -3443,14 +3337,10 @@ def update_posts_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 def clean_html(html_content):
     """Clean HTML content by removing orphaned grid attributes and empty sections"""
 
-    # Remove any standalone ":margin 2" lines that might be orphaned
     html_content = re.sub(r"\n:margin 2\n", "\n", html_content)
 
-    # Remove any malformed or empty grid sections completely
-    # This pattern matches grid sections with no content between the tags
     html_content = re.sub(r"::::{grid}[^\n]*\n:margin 2\n\n::::", "", html_content)
 
-    # Fix stacked colons in grid tags (like ::::::::{grid})
     html_content = re.sub(r":+{grid}", "::::{grid}", html_content)
 
     return html_content
@@ -3464,22 +3354,18 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Import the raw HTML template
     template_html = import_file("rocm_blogs.templates", "vertical.html")
     css_content = import_file("rocm_blogs.static.css", "index.css")
     pagination_template = import_file("rocm_blogs.templates", "pagination.html")
     pagination_css = import_file("rocm_blogs.static.css", "pagination.css")
 
-    # Create the full template with CSS
     index_template = VERTICAL_TEMPLATE.format(CSS=css_content, HTML=template_html)
 
-    # Fix any malformed grid tags in the template
     index_template = index_template.replace(
         "{grid} 1 2 3 4\n:margin 2\n{application_grid_items}\n::::",
         "::::{grid} 1 2 3 4\n:margin 2\n{application_grid_items}\n::::",
     )
 
-    # Use the shared ROCmBlogs instance
     blogs_directory = rocm_blogs.blogs_directory
 
     if log_file_handle:
@@ -3548,7 +3434,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 rocm_blogs, vertical_blogs
             )
 
-            # Check if any grid items were generated for this vertical
             if not all_grid_items:
                 log_message(
                     "warning",
@@ -3574,7 +3459,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 end_index = min(start_index + BLOGS_PER_PAGE, len(all_grid_items))
                 page_grid_items = all_grid_items[start_index:end_index]
 
-                # Validate grid content before creating page
                 if not page_grid_items:
                     log_message(
                         "warning",
@@ -3591,7 +3475,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
 
                 grid_content = "\n".join(page_grid_items)
 
-                # Additional validation: ensure grid content is meaningful
                 if not grid_content or not grid_content.strip():
                     log_message(
                         "warning",
@@ -3613,13 +3496,11 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     f"verticals-{formatted_vertical}",
                 )
 
-                # Add page suffix for pages after the first
                 page_title_suffix = f" - Page {page_num}" if page_num > 1 else ""
                 page_description_suffix = (
                     f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
                 )
 
-                # Create the final page content
                 page_content = POSTS_TEMPLATE.format(
                     CSS=css_content,
                     PAGINATION_CSS=pagination_css,
@@ -3632,12 +3513,10 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     current_page=page_num,
                 )
 
-                # Replace the title to include the vertical name
                 page_content = page_content.replace(
                     "# Recent Posts", f"# {vertical} Blogs"
                 )
 
-                # Final validation: ensure page content is not empty
                 if not page_content or len(page_content.strip()) < 100:
                     log_message(
                         "warning",
@@ -3652,7 +3531,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                         )
                     continue
 
-                # Determine output filename and write the file
                 output_filename = (
                     f"verticals-{formatted_vertical}.md"
                     if page_num == 1
@@ -3679,7 +3557,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             safe_log_write(log_file_handle, f"ERROR: {error_message}\n")
             safe_log_write(log_file_handle, f"Traceback: {traceback.format_exc()}\n")
 
-    # Generate individual vertical pages using Jinja2 templating
     verticals = rocm_blogs.blogs.blogs_verticals
     for vertical in verticals:
         used_blogs = []
@@ -3734,7 +3611,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             False,
         )
 
-        # Check if we have any content at all for this vertical
         if (
             not main_grid_items
             and not ecosystem_grid_items
@@ -3747,12 +3623,10 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 )
             continue
 
-        # Format the vertical name for links
         formatted_vertical = vertical.replace(" ", "-").replace("&", "and").lower()
         formatted_vertical = re.sub(r"[^a-z0-9-]", "", formatted_vertical)
         formatted_vertical = re.sub(r"-+", "-", formatted_vertical)
 
-        # Use Jinja2 template rendering instead of string manipulation
         updated_html = process_templates_for_vertical(
             vertical,
             main_grid_items,
@@ -3777,7 +3651,6 @@ def update_vertical_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 f"Generated vertical page for {vertical} using Jinja2 templating\n",
             )
 
-    # Record timing information
     phase_duration = time.time() - phase_start_time
     _BUILD_PHASES["update_vertical_pages"] = phase_duration
     log_message(
@@ -3800,10 +3673,8 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
     phase_start_time = time.time()
     phase_name = "update_category_verticals"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_pages_processed = 0
     total_pages_successful = 0
     total_pages_error = 0
@@ -3816,7 +3687,6 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
             )
             safe_log_write(log_file_handle, "-" * 80 + "\n\n")
 
-        # Load templates and styles
         pagination_template = import_file("rocm_blogs.templates", "pagination.html")
         css_content = import_file("rocm_blogs.static.css", "index.css")
         pagination_css = import_file("rocm_blogs.static.css", "pagination.css")
@@ -3826,7 +3696,6 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
                 log_file_handle, "Successfully loaded templates and styles\n"
             )
 
-        # Use the shared ROCmBlogs instance
         blogs_directory = rocm_blogs.blogs_directory
 
         if log_file_handle:
@@ -3834,21 +3703,18 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
                 log_file_handle, f"Using shared blogs directory: {blogs_directory}\n"
             )
 
-        # Sort categories by vertical if not already done
-        rocm_blogs.blogs.sort_categories_by_vertical(log_file_handle)
+        rocm_blogs.blogs.sort_categories_by_vertical()
 
         safe_log_write(
             log_file_handle, "Using shared blog data sorted by category and vertical\n"
         )
 
-        # Get all vertical-category combinations
         keys = rocm_blogs.blogs.get_vertical_category_blog_keys()
 
         safe_log_write(
             log_file_handle, f"Found {len(keys)} vertical-category combinations\n"
         )
 
-        # Process each vertical-category combination
         for key in keys:
             total_pages_processed += 1
             category, vertical = key
@@ -3858,7 +3724,6 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
                 f"\nProcessing vertical-category: {vertical} - {category}\n",
             )
 
-            # Get blogs for this vertical-category combination
             category_vertical_blogs = rocm_blogs.blogs.get_vertical_category_blogs(
                 category, vertical
             )
@@ -3893,7 +3758,6 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
                 vertical = "HPC"
                 title_vertical = vertical
             else:
-                # Apply title case to each word
                 words_vertical = vertical.split(" ")
                 title_vertical = " ".join(word.capitalize() for word in words_vertical)
             title_vertical = title_vertical.replace("and", "&").replace("And", "&")
@@ -4006,7 +3870,6 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from generation_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -4047,10 +3910,8 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
     phase_start_time = time.time()
     phase_name = "update_category_pages"
 
-    # Create a log file for this step
     log_filepath, log_file_handle = create_step_log_file(phase_name)
 
-    # Track statistics for summary
     total_categories_processed = 0
     total_categories_successful = 0
     total_categories_error = 0
@@ -4064,7 +3925,6 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
             )
             safe_log_write(log_file_handle, "-" * 80 + "\n\n")
 
-        # Load templates and styles
         pagination_template = import_file("rocm_blogs.templates", "pagination.html")
         css_content = import_file("rocm_blogs.static.css", "index.css")
         pagination_css = import_file("rocm_blogs.static.css", "pagination.css")
@@ -4074,7 +3934,6 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, "Successfully loaded templates and styles\n"
             )
 
-        # Use the shared ROCmBlogs instance
         blogs_directory = rocm_blogs.blogs_directory
 
         if log_file_handle:
@@ -4082,10 +3941,8 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                 log_file_handle, f"Using shared blogs directory: {blogs_directory}\n"
             )
 
-        # Current datetime for template
         current_datetime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        # Process each category
         if log_file_handle:
             safe_log_write(
                 log_file_handle, f"Processing {len(BLOG_CATEGORIES)} categories\n"
@@ -4155,7 +4012,6 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     {"category": category_name, "error": str(category_processing_error)}
                 )
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES["update_category_pages"] = phase_duration
         log_message(
@@ -4186,7 +4042,6 @@ def update_category_pages(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         _CRITICAL_ERROR_OCCURRED = True
         raise ROCmBlogsError(error_message) from category_error
     finally:
-        # Write summary to log file
         if log_file_handle:
             end_time = time.time()
             total_duration = end_time - phase_start_time
@@ -4241,7 +4096,6 @@ def setup(sphinx_app: Sphinx) -> dict:
     )
     append_to_universal_log(f"ROCm Blogs Extension Setup - Version {__version__}")
 
-    # Add configuration values for ROCm Blogs extension
     sphinx_app.add_config_value("rocm_blogs_debug", False, "env", [bool])
     sphinx_app.add_config_value("rocm_blogs_log_level", "INFO", "env", [str])
     sphinx_app.add_config_value("rocm_blogs_log_file", None, "env", [str, type(None)])
@@ -4249,7 +4103,6 @@ def setup(sphinx_app: Sphinx) -> dict:
         "rocm_blogs_enable_performance_tracking", False, "env", [bool]
     )
 
-    # Initialize logging based on configuration
     _initialize_logging_from_config(sphinx_app)
 
     log_message(
@@ -4268,13 +4121,10 @@ def setup(sphinx_app: Sphinx) -> dict:
     try:
         log_message("info", "Setting up ROCm Blogs extension...", "setup", "extension")
 
-        # Set up static files
         _setup_static_files(sphinx_app)
 
-        # Register event handlers
         _register_event_handlers(sphinx_app)
 
-        # Record timing information
         phase_duration = time.time() - phase_start_time
         _BUILD_PHASES[phase_name] = phase_duration
         log_message(
@@ -4285,12 +4135,10 @@ def setup(sphinx_app: Sphinx) -> dict:
             extra_data={"duration_seconds": phase_duration},
         )
 
-        # Log successful completion
         append_to_universal_log(
             f"Setup completed successfully in {phase_duration:.2f} seconds"
         )
 
-        # Return extension metadata
         return {
             "version": __version__,
             "parallel_read_safe": True,
@@ -4313,7 +4161,6 @@ def setup(sphinx_app: Sphinx) -> dict:
         ) from setup_error
 
 
-# Global variable to store the current Sphinx app for configuration access
 _current_sphinx_app = None
 
 
@@ -4321,11 +4168,9 @@ def _initialize_logging_from_config(sphinx_app: Sphinx) -> None:
     """Initialize logging based on Sphinx configuration."""
     global structured_logger, _current_sphinx_app
 
-    # Store the Sphinx app globally so other functions can access config
     _current_sphinx_app = sphinx_app
 
     try:
-        # Get configuration values
         debug_enabled = getattr(sphinx_app.config, "rocm_blogs_debug", False)
         log_level = getattr(sphinx_app.config, "rocm_blogs_log_level", "INFO")
         log_file = getattr(sphinx_app.config, "rocm_blogs_log_file", None)
@@ -4341,7 +4186,6 @@ def _initialize_logging_from_config(sphinx_app: Sphinx) -> None:
             os.environ["ROCM_BLOGS_DISABLE_LOGGING"] = "true"
             os.environ["ROCM_BLOGS_DEBUG"] = "false"
 
-        # Set other configuration options
         if log_level:
             os.environ["ROCM_BLOGS_LOG_LEVEL"] = log_level.upper()
 
@@ -4351,7 +4195,6 @@ def _initialize_logging_from_config(sphinx_app: Sphinx) -> None:
         if not performance_tracking:
             os.environ["ROCM_BLOGS_ENABLE_PERFORMANCE"] = "false"
 
-        # Reinitialize the structured logger with new configuration
         if LOGGING_AVAILABLE and debug_enabled:
             try:
                 log_file_path = (
@@ -4386,7 +4229,6 @@ def _initialize_logging_from_config(sphinx_app: Sphinx) -> None:
 
     except Exception as config_error:
         print(f"Error initializing logging from config: {config_error}")
-        # Fallback to environment-based configuration
         pass
 
 
@@ -4395,11 +4237,9 @@ def is_logging_enabled_from_config():
     global _current_sphinx_app
 
     if _current_sphinx_app is not None:
-        # Simple check: if rocm_blogs_debug = True, logging is enabled
         debug_enabled = getattr(_current_sphinx_app.config, "rocm_blogs_debug", False)
         return debug_enabled
 
-    # Fallback to environment variable check
     import os
 
     return os.getenv("ROCM_BLOGS_DEBUG", "").lower() in ("true", "1", "yes", "on")
@@ -4408,11 +4248,9 @@ def is_logging_enabled_from_config():
 def _setup_static_files(sphinx_app: Sphinx) -> None:
     """Set up static files for the ROCm Blogs extension."""
     try:
-        # Add static directory to Sphinx
         static_directory = (Path(__file__).parent / "static").resolve()
         sphinx_app.config.html_static_path.append(str(static_directory))
 
-        # Add JavaScript files
         sphinx_app.add_js_file("js/performance.js")
         sphinx_app.add_js_file("js/image-loading.js")
 
@@ -4469,10 +4307,8 @@ def _initialize_shared_rocm_blogs(sphinx_app: Sphinx) -> ROCmBlogs:
             "info", "Initializing shared ROCmBlogs instance...", "general", "__init__"
         )
 
-        # Create the shared instance
         rocm_blogs = ROCmBlogs()
 
-        # Find blogs directory
         blogs_directory = rocm_blogs.find_blogs_directory(sphinx_app.srcdir)
         if not blogs_directory:
             error_message = "Could not find blogs directory during initialization"
@@ -4484,23 +4320,18 @@ def _initialize_shared_rocm_blogs(sphinx_app: Sphinx) -> ROCmBlogs:
             "info", "Found blogs directory: {blogs_directory}", "general", "__init__"
         )
 
-        # Find README files
         readme_count = rocm_blogs.find_readme_files()
         log_message("info", f"Found {readme_count} README files", "general", "__init__")
 
-        # Create blog objects
         rocm_blogs.create_blog_objects()
         log_message("info", "Created blog objects", "general", "__init__")
 
-        # Find author files
         rocm_blogs.find_author_files()
         log_message("info", "Found author files", "general", "__init__")
 
-        # Sort blogs
         rocm_blogs.blogs.sort_blogs_by_date()
         log_message("info", "Sorted blogs by date", "general", "__init__")
 
-        # Extract category keys from BLOG_CATEGORIES to use for sorting
         category_keys = [
             category_info.get("category_key", category_info["name"])
             for category_info in BLOG_CATEGORIES
@@ -4541,10 +4372,8 @@ def _create_event_handler_with_shared_instance(func, rocm_blogs):
 def _register_event_handlers(sphinx_app: Sphinx) -> None:
     """Register event handlers for the ROCm Blogs extension."""
     try:
-        # Initialize shared ROCmBlogs instance
         shared_rocm_blogs = _initialize_shared_rocm_blogs(sphinx_app)
 
-        # Register event handlers with shared instance
         sphinx_app.connect(
             "builder-inited",
             _create_event_handler_with_shared_instance(

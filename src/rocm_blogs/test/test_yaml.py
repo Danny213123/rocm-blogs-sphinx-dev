@@ -9,7 +9,6 @@ def validate_metadata(markdown_path):
         with open(markdown_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Extract YAML front matter (between --- delimiters)
         if not content.startswith("---"):
             print(f"No metadata block found at start of {markdown_path}")
             return
@@ -19,11 +18,9 @@ def validate_metadata(markdown_path):
             print(f"Missing closing '---' for metadata in {markdown_path}")
             return
 
-        # Extract YAML content
         yaml_block = content[3:end_idx].strip()
 
         try:
-            # Attempt to parse YAML (raises error on invalid syntax)
             yaml.safe_load(yaml_block)
             print(f"Valid YAML metadata in {markdown_path}")
         except yaml.YAMLError as e:

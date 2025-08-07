@@ -18,7 +18,6 @@ from .logger.logger import (create_step_log_file,
                             safe_log_close, safe_log_write)
 from .utils import calculate_day_of_week
 
-# Blog classification constants
 PRIMARY_TAGS = {
     "AI": ["LLM", "GenAI", "Diffusion Model", "Reinforcement Learning"],
     "HPC": ["HPC", "System-Tuning", "OpenMP"],
@@ -95,12 +94,10 @@ VERTICAL_IMPORTANCE = {
     "Robotics": 1.0,
 }
 
-# Pre-compiled regular expressions
 METADATA_REGEX_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 BLOGPOST_REGEX_PATTERN = re.compile(r"blogpost:\s*true", re.IGNORECASE)
 TITLE_REGEX_PATTERN = re.compile(r"^# (.+)$", re.MULTILINE)
 
-# Date parsing formats
 DATE_FORMATS = [
     "%d-%m-%Y",
     "%d/%m/%Y",
@@ -116,7 +113,6 @@ DATE_FORMATS = [
     "%b %d %Y",
 ]
 
-# Special cases for handling commas in metadata
 WEIRD_INPUTS_AMD_BLOG_APPLICATIONS = ["Design, Simulation & Modeling"]
 WEIRD_INPUTS_TECHNICAL_BLOG_TYPE = ["Tools, Features, and Optimizations"]
 
@@ -126,7 +122,6 @@ def classify_blog_tags(
 ) -> Dict[str, Any]:
     """Classify blog tags into market verticals."""
 
-    # Initialize vertical classification data structures
     vertical_scores = defaultdict(float)
     vertical_counts = {
         "AI": 0,
@@ -138,7 +133,6 @@ def classify_blog_tags(
     primary_matches = defaultdict(list)
     secondary_matches = defaultdict(list)
 
-    # Normalize input tags to consistent list format
     if isinstance(blog_tags, str):
         tags = [tag.strip() for tag in blog_tags.split(",") if tag.strip()]
     elif isinstance(blog_tags, list):
@@ -158,7 +152,6 @@ def classify_blog_tags(
             f"Checking Blog Tags: {', '.join(tags)} for market verticals.\n",
         )
 
-    # Process each tag for vertical classification
     for tag in tags:
         normalized_tag = tag.strip()
         tag_matched = False
@@ -176,7 +169,6 @@ def classify_blog_tags(
                 )
             continue
 
-        # Check for primary tag matches first
         for vertical, primary_tag_list in PRIMARY_TAGS.items():
             if normalized_tag in primary_tag_list:
                 weight = TAG_WEIGHTS.get(normalized_tag, 1.0)
@@ -194,7 +186,6 @@ def classify_blog_tags(
                     )
                 break
 
-        # Check for secondary tag matches when no primary match found
         if not tag_matched:
             for vertical, secondary_tag_list in SECONDARY_TAGS.items():
                 if normalized_tag in secondary_tag_list:
@@ -213,12 +204,10 @@ def classify_blog_tags(
                         )
                     break
 
-    # Apply bonus scoring for multiple tag matches within verticals
     for vertical in vertical_scores.keys():
         primary_count = len(primary_matches[vertical])
         secondary_count = len(secondary_matches[vertical])
 
-        # Apply bonus for multiple primary tags within the same vertical
         if primary_count > 1:
             primary_bonus = 0.3 * (primary_count - 1)
             vertical_scores[vertical] *= 1 + primary_bonus
@@ -229,7 +218,6 @@ def classify_blog_tags(
                     f"Applied primary tag bonus of {primary_bonus:.2f} to {vertical}\n",
                 )
 
-        # Apply bonus for secondary tags within the same vertical
         if secondary_count > 0:
             secondary_bonus = 0.1 * secondary_count
             vertical_scores[vertical] *= 1 + secondary_bonus
@@ -240,7 +228,6 @@ def classify_blog_tags(
                     f"Applied secondary tag bonus of {secondary_bonus:.2f} to {vertical}\n",
                 )
 
-    # Determine final vertical classifications based on scoring thresholds
     top_verticals = sorted(
         [(vertical, score) for vertical, score in vertical_scores.items() if score > 0],
         key=lambda x: x[1],
@@ -258,21 +245,17 @@ def classify_blog_tags(
     if len(selected_verticals) > max_verticals:
         selected_verticals = selected_verticals[:max_verticals]
 
-    # Determine primary market vertical and apply relative threshold filtering
     if selected_verticals:
         top_vertical, top_score = selected_verticals[0]
         relative_threshold = 0.35
 
-        # Initialize all vertical counts to zero
         for vertical_key in vertical_counts:
             vertical_counts[vertical_key] = 0
 
-        # Apply relative threshold filtering to determine final vertical assignments
         for vertical, score in selected_verticals:
             if score >= top_score * relative_threshold:
                 vertical_counts[vertical] = score
 
-        # Ensure the top vertical is always included
         vertical_counts[top_vertical] = top_score
         market_vertical = top_vertical
 
@@ -282,7 +265,6 @@ def classify_blog_tags(
                 f"Primary market vertical: {market_vertical} (score: {top_score:.2f})\n",
             )
 
-            # Log additional verticals within threshold
             additional_verticals = [
                 (vertical, score)
                 for vertical, score in vertical_counts.items()
@@ -311,7 +293,6 @@ def classify_blog_tags(
             metadata_log_file_handle, f"Final vertical counts: {vertical_counts}\n"
         )
 
-    # Prepare comprehensive classification results
     classification_details = {
         "vertical_counts": vertical_counts,
         "scores": {
@@ -391,10 +372,8 @@ myst:
 
     all_error_details = []
 
-    # Get blogs list early so it's accessible throughout the function
     blogs = rocm_blogs_instance.blogs.get_blogs()
 
-    # Create universal log file handle
     metadata_log_filepath, metadata_log_file_handle = create_step_log_file(
         "metadata_generation"
     )
@@ -716,11 +695,9 @@ myst:
                             f"Thumbnail: {extracted_metadata['thumbnail']}\n",
                         )
 
-                        # Store original thumbnail for og:image (non-webp)
                         extracted_og_image = extracted_metadata["thumbnail"]
                         extracted_thumbnail = extracted_metadata["thumbnail"]
 
-                        # Convert thumbnail to webp for regular use
                         for f_format in SUPPORTED_FORMATS:
                             if f_format in extracted_metadata["thumbnail"]:
                                 og_image_extracted = extracted_metadata[
@@ -820,12 +797,8 @@ myst:
                             f"Vertical Count: {vertical_counts.get('vertical_counts')} for blog: {blog_filepath}\n",
                         )
 
-                        # Get the primary market vertical directly from the
-                        # function return value
                         vertical_dict = vertical_counts.get("market_vertical")
 
-                        # If market_vertical is None, try to find the highest
-                        # scored vertical
                         if vertical_dict is not None:
                             vertical_scores = vertical_counts.get("vertical_counts", {})
 
@@ -919,7 +892,6 @@ myst:
                         f"Extracted Metadata: {json.dumps(extracted_metadata, indent=2)}\n",
                     )
 
-                    # Extract AMD-specific metadata fields with default values if missing
                     amd_technical_blog_type = html_metadata.get(
                         "amd_technical_blog_type", "Applications and Models"
                     )
@@ -945,7 +917,6 @@ myst:
                         "AI & Intelligent Systems; Industry Applications & Use Cases",
                     )
 
-                    # Handle special cases with commas using imported constants
                     if any(
                         weird_input in amd_applications
                         for weird_input in WEIRD_INPUTS_AMD_BLOG_APPLICATIONS
@@ -1083,19 +1054,15 @@ myst:
                     )
 
                 try:
-                    # Check if release date is already present in metadata
                     amd_blog_releasedate = ""
 
-                    # If no release date exists, generate one from the blog's date
                     if not amd_blog_releasedate:
                         blog_date = extracted_metadata.get("date", "")
 
-                        # Normalize date format - remove leading zeros to avoid octal literals
                         if blog_date.startswith("0"):
                             day_part = blog_date.split()[0].lstrip("0")
                             blog_date = " ".join([day_part] + blog_date.split()[1:])
 
-                        # Use imported date formats for consistency
                         parsed_date = None
                         for date_format in DATE_FORMATS:
                             try:
@@ -1118,7 +1085,6 @@ myst:
                             )
                             total_blogs_warning += 1
 
-                        # Extract day, month, year components
                         day = parsed_date.day
                         month = parsed_date.month
                         year = parsed_date.year
@@ -1155,7 +1121,6 @@ myst:
                             blog_filepath, rocm_blogs_instance.blogs_directory
                         )
                         blog_directory = os.path.dirname(relative_blog_path)
-                        # Convert Windows backslashes to forward slashes for URLs
                         blog_directory = blog_directory.replace("\\", "/")
                         generated_blog_url = f"/{blog_directory}/README.html"
                         log_message(
@@ -1281,7 +1246,6 @@ myst:
                     )
                     match = metadata_regex_pattern.search(blog_file_content)
                     if match:
-                        # Use string slicing instead of regex substitution to avoid escape sequence issues
                         blog_file_content = (
                             blog_file_content[: match.start()]
                             + formatted_metadata_content
@@ -1336,18 +1300,15 @@ myst:
                             f"Re-extracted metadata from updated file: {json.dumps(updated_metadata, indent=2)}\n",
                         )
 
-                        # Use the current blog object directly since we already have it
                         blog_object = blog
 
                         if blog_object:
-                            # Update the blog object's metadata attribute
                             blog_object.metadata = updated_metadata
                             safe_log_write(
                                 metadata_log_file_handle,
                                 f"Updated blog object metadata attribute\n",
                             )
 
-                            # Update specific attributes that are used by vertical pages
                             if updated_metadata:
                                 myst_section = updated_metadata.get("myst", {})
                                 html_metadata = myst_section.get("html_meta", {})
@@ -1359,7 +1320,6 @@ myst:
                                 )
 
                                 if vertical_str:
-                                    # Update the blog object's vertical attribute first
                                     blog_object.vertical = vertical_str
 
                                     if hasattr(
@@ -1415,11 +1375,9 @@ myst:
                                         f"No vertical found in metadata\n",
                                     )
 
-                                # Update all attributes from metadata (same as Blog.__init__)
                                 for key, value in updated_metadata.items():
                                     setattr(blog_object, key, value)
 
-                                # Ensure date is properly parsed if present
                                 if "date" in updated_metadata:
                                     blog_object.date = blog_object.parse_date(
                                         updated_metadata["date"]
@@ -1430,7 +1388,6 @@ myst:
                                     f"Successfully synchronized in-memory blog object with updated file metadata\n",
                                 )
 
-                                # Debug: Print final state of blog object
                                 safe_log_write(
                                     metadata_log_file_handle,
                                     f"FINAL BLOG OBJECT STATE:\n",
@@ -1480,7 +1437,6 @@ myst:
                             metadata_log_file_handle,
                             f"Traceback: {traceback.format_exc()}\n",
                         )
-                        # Don't fail the entire process for sync errors, just log them
 
                     total_blogs_successful += 1
                 except Exception as write_exception:
@@ -1581,7 +1537,6 @@ myst:
                     )
 
     except Exception as general_error:
-        # Handle any unexpected errors during metadata generation
         log_message(
             "error",
             f"Unexpected error during metadata generation: {general_error}",
@@ -1599,11 +1554,9 @@ myst:
                 metadata_log_file_handle, f"Traceback: {traceback.format_exc()}\n"
             )
     finally:
-        # Close the log file handle if it was opened
         if metadata_log_file_handle:
             safe_log_close(metadata_log_file_handle)
 
-    # Calculate total generation duration outside the try block to ensure it's always available
     end_time = datetime.now()
     total_generation_duration = (end_time - generation_start_time).total_seconds()
 

@@ -1,0 +1,2 @@
+title,description,url,author,date,category,tags,content_type,source_domain
+"MI300X FP8 Data-Parallel Benchmarks (8-64 GPUs): H200 Left Behind, B200 Within Reach","Benchmarking FP8 performance of AMD MI300X GPUs in data-parallel configurations, comparing with NVIDIA H200 and B200","https://eliovp.com/mi300x-fp8-data-parallel-benchmarks/","Elio VP","2025-01-07","AI","Benchmarks,FP8,MI300X,NVIDIA","article","eliovp.com"

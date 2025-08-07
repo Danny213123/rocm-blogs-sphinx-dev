@@ -42,7 +42,6 @@ def convert_to_webp(source_image_path):
         )
         return False, None
 
-    # Skip conversion for .gif files (and other excluded extensions)
     if file_extension.lower() in EXCLUDED_EXTENSIONS:
         log_message(
             "info",
@@ -355,8 +354,6 @@ def _create_webp_version(
     optimized_image, webp_image_path, original_image_path, original_file_size
 ):
     """Create a WebP version of the image."""
-
-    # check if file extension is in excluded list
     _, file_extension = os.path.splitext(original_image_path)
     file_extension = file_extension.lower()
     if file_extension in EXCLUDED_EXTENSIONS:
@@ -440,8 +437,6 @@ def _process_image(
     source_image_filename,
 ):
     """Process the image by stripping metadata and resizing if needed."""
-
-    # check if file extension is in excluded list
     _, file_extension = os.path.splitext(source_image_path)
     file_extension = file_extension.lower()
     if file_extension in EXCLUDED_EXTENSIONS:
@@ -578,7 +573,6 @@ def _save_optimized_image(
                 optimized_image_path, format="WEBP", **FORMAT_SETTINGS["WEBP"]
             )
         elif file_extension in EXCLUDED_EXTENSIONS:
-            # skip GIF optimization
             log_message(
                 "info",
                 "Skipping optimization for {source_image_filename}",

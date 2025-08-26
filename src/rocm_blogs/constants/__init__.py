@@ -62,6 +62,7 @@ html_meta:
 <style>
 {CSS}
 {BANNER_CSS}
+{EXTERNAL_SIDEBAR_CSS}
 </style>
 {HTML}
 """

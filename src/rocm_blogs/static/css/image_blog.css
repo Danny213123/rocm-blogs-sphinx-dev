@@ -3,18 +3,104 @@
     align-items: center;
     justify-content: center;
     padding: 5px;
+    position: relative;
+    overflow: hidden;
+    /* Force hardware acceleration and ensure proper rendering */
+    transform: translateZ(0);
+    will-change: height;
 }
 
 .responsive-image {
     width: 100%;
     height: 480px;
     object-fit: cover;
-    border: 5px solid #333;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    transition: opacity 0.3s ease-in-out;
+    /* Force proper reflow on viewport changes */
+    transform: translateZ(0);
+    will-change: height;
+    /* Ensure image is always visible */
+    min-width: 100%;
+    display: block;
+    background-color: #f0f0f0;
 }
 
-@media (max-width: 768px) {
+/* Responsive height adjustments for different viewport widths */
+@media (max-width: 320px) {
+    .image-container {
+        height: 180px;
+        min-height: 180px;
+    }
     .responsive-image {
-        max-height: 400px;
+        height: 170px;
+        min-height: 170px;
     }
 }
+
+@media (min-width: 321px) and (max-width: 375px) {
+    .image-container {
+        height: 220px;
+        min-height: 220px;
+    }
+    .responsive-image {
+        height: 210px;
+        min-height: 210px;
+    }
+}
+
+@media (min-width: 376px) and (max-width: 425px) {
+    .image-container {
+        height: 250px;
+        min-height: 250px;
+    }
+    .responsive-image {
+        height: 240px;
+        min-height: 240px;
+    }
+}
+
+@media (min-width: 426px) and (max-width: 768px) {
+    .image-container {
+        height: 350px;
+        min-height: 350px;
+    }
+    .responsive-image {
+        height: 340px;
+        min-height: 340px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .image-container {
+        height: 420px;
+        min-height: 420px;
+    }
+    .responsive-image {
+        height: 410px;
+        min-height: 410px;
+    }
+}
+
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .image-container {
+        height: 480px;
+        min-height: 480px;
+    }
+    .responsive-image {
+        height: 470px;
+        min-height: 470px;
+    }
+}
+
+@media (min-width: 1441px) {
+    .image-container {
+        height: 540px;
+        min-height: 540px;
+    }
+    .responsive-image {
+        height: 530px;
+        min-height: 530px;
+    }
+}
+
+/* Dark mode support - removed background and border colors */

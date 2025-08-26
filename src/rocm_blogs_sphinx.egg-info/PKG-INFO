@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: rocm-blogs-sphinx
+Version: 1.11.1
+Summary: ROCm Blogs
+Author-email: Danny Guan <danny.guan@amd.com>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: sphinx>=4.0
+Requires-Dist: jinja2>=3.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: pillow>=8.0
+Requires-Dist: requests>=2.25
+Provides-Extra: logging
+Requires-Dist: rocm-blogs-logging>=1.0.0; extra == "logging"
+Provides-Extra: dev
+Requires-Dist: rocm-blogs-logging>=1.0.0; extra == "dev"
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Requires-Dist: mypy>=0.800; extra == "dev"
+Dynamic: license-file
+
+# ROCm Blogs Sphinx backend
+
+The [ROCm blogs site](http://rocm.blogs.amd.com) is built with entire open source tools. This repository contains the backend code built on top of the rocm-docs-core sphinx theme.

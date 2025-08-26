@@ -1,9 +1,14 @@
 <div class="image-container">
-    <!-- Direct image loading for immediate display -->
+    <!-- Responsive image with srcset for different viewport sizes -->
     <img 
         src="{IMAGE}" 
+        srcset="{SRCSET}"
+        sizes="{SIZES}"
         alt="{TITLE}" 
         class="responsive-image loaded" 
         title="{TITLE}"
+        loading="eager"
+        decoding="sync"
+        onerror="this.onerror=null; this.src='{IMAGE}';"
     >
 </div>

@@ -25,6 +25,99 @@ WEBP_CONVERSION_STATISTICS = {
 }
 
 
+def generate_responsive_images(source_image_path, target_widths=None, output_dir=None):
+    """Generate multiple resolution variants of an image for responsive loading.
+    
+    Args:
+        source_image_path: Path to the source image
+        target_widths: List of target widths for responsive images.
+                      Defaults to [375, 425, 768, 1024, 1440]
+        output_dir: Directory to save variants. If None, uses source directory
+    
+    Returns:
+        dict: Dictionary mapping widths to file paths of generated images
+    """
+    if target_widths is None:
+        # Default responsive breakpoints matching common device sizes with more intermediate sizes
+        target_widths = [320, 375, 425, 480, 568, 640, 768, 896, 1024, 1280, 1440, 1600, 1920]
+    
+    source_dir = output_dir if output_dir else os.path.dirname(source_image_path)
+    base_name = os.path.splitext(os.path.basename(source_image_path))[0]
+    _, file_extension = os.path.splitext(source_image_path)
+    
+    responsive_images = {}
+    
+    if not os.path.exists(source_image_path):
+        log_message("warning", f"Source image not found: {source_image_path}")
+        return responsive_images
+    
+    if file_extension.lower() in EXCLUDED_EXTENSIONS:
+        log_message("info", f"Skipping responsive generation for excluded format: {file_extension}")
+        return {0: source_image_path}  # Return original for excluded formats
+    
+    try:
+        with Image.open(source_image_path) as img:
+            original_width, original_height = img.size
+            aspect_ratio = original_height / original_width
+            
+            # Always include the original size
+            responsive_images[original_width] = source_image_path
+            
+            log_message("info", f"Generating responsive images for: {base_name} (original: {original_width}x{original_height})")
+            
+            for target_width in target_widths:
+                # Skip if target is larger than original
+                if target_width >= original_width:
+                    log_message("debug", f"Skipping {target_width}w (larger than original {original_width}w)")
+                    continue
+                
+                # Calculate proportional height
+                target_height = int(target_width * aspect_ratio)
+                
+                # Generate filename with width suffix
+                variant_filename = f"{base_name}-{target_width}w.webp"
+                variant_path = os.path.join(source_dir, variant_filename)
+                
+                # Skip if variant already exists
+                if os.path.exists(variant_path):
+                    responsive_images[target_width] = variant_path
+                    log_message("debug", f"Responsive variant already exists: {variant_path}")
+                    continue
+                
+                # Create the resized variant
+                try:
+                    log_message("info", f"Creating variant: {variant_filename} ({target_width}x{target_height})")
+                    
+                    resized_img = img.resize(
+                        (target_width, target_height),
+                        resample=Image.LANCZOS
+                    )
+                    
+                    # Convert to RGB if needed for WebP
+                    if resized_img.mode not in ("RGB", "RGBA"):
+                        resized_img = resized_img.convert("RGB")
+                    
+                    # Save as WebP with high quality
+                    resized_img.save(
+                        variant_path,
+                        format="WEBP",
+                        quality=95,
+                        method=6
+                    )
+                    
+                    responsive_images[target_width] = variant_path
+                    log_message("info", f"✓ Created responsive variant: {variant_filename} ({target_width}x{target_height})")
+                    
+                except Exception as resize_error:
+                    log_message("warning", f"Failed to create {target_width}w variant: {resize_error}")
+    
+    except Exception as e:
+        log_message("warning", f"Error generating responsive images: {e}")
+    
+    log_message("info", f"Generated {len(responsive_images) - 1} responsive variants for {base_name}")
+    return responsive_images
+
+
 def convert_to_webp(source_image_path):
     """Convert an image to WebP format with proper resizing."""
     source_image_filename = os.path.basename(source_image_path)
@@ -58,6 +151,8 @@ def convert_to_webp(source_image_path):
 
     if os.path.exists(webp_image_path):
         log_message("debug", f"WebP version already exists: {webp_image_path}")
+        # Generate responsive variants for existing WebP
+        generate_responsive_images(webp_image_path)
         return True, webp_image_path
 
     try:
@@ -112,6 +207,9 @@ def convert_to_webp(source_image_path):
                 "general",
                 "images",
             )
+            
+            # Generate responsive variants after creating the main WebP
+            generate_responsive_images(webp_image_path)
 
             return True, webp_image_path
 

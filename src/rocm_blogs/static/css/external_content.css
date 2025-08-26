@@ -1,0 +1,198 @@
+/* External Content Cards - Modern Minimalist Design */
+
+.external-content-card {
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background: #ffffff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.external-content-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.external-content-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+    opacity: 0.9;
+}
+
+.external-content-badge.external {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+}
+
+.external-content-thumbnail {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.external-content-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.external-content-thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.external-content-body {
+    padding: 20px;
+}
+
+.external-content-header {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #2d3748;
+}
+
+.external-content-header a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.external-content-header a:hover {
+    color: #667eea;
+}
+
+.external-content-description {
+    color: #718096;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.external-content-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #a0aec0;
+    margin-top: auto;
+}
+
+.external-content-date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.external-content-source {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+    color: #667eea;
+    font-weight: 500;
+}
+
+.external-content-type-icon {
+    font-size: 0.9rem;
+}
+
+.external-content-source-domain {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Integration with existing grid system */
+.external-content-grid-item {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.external-content-grid-item .external-content-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.external-content-grid-item .external-content-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.external-content-grid-item .external-content-description {
+    flex: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .external-content-thumbnail {
+        height: 140px;
+    }
+    
+    .external-content-body {
+        padding: 16px;
+    }
+    
+    .external-content-header {
+        font-size: 1rem;
+    }
+    
+    .external-content-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .external-content-card {
+        background: #1a202c;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .external-content-header {
+        color: #e2e8f0;
+    }
+    
+    .external-content-description {
+        color: #a0aec0;
+    }
+    
+    .external-content-card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+}

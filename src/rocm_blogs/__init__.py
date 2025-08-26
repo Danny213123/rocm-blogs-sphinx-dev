@@ -1136,6 +1136,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         template_html = import_file("rocm_blogs.templates", "index.html")
         css_content = import_file("rocm_blogs.static.css", "index.css")
         banner_css_content = import_file("rocm_blogs.static.css", "banner-slider.css")
+        external_sidebar_css = import_file("rocm_blogs.static.css", "external_sidebar.css")
         track_operation_time("load_templates_and_styles", operation_start)
 
         if log_file_handle:
@@ -1145,7 +1146,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
 
         # Format the index template
         index_template = INDEX_TEMPLATE.format(
-            CSS=css_content, BANNER_CSS=banner_css_content, HTML=template_html
+            CSS=css_content, BANNER_CSS=banner_css_content, EXTERNAL_SIDEBAR_CSS=external_sidebar_css, HTML=template_html
         )
 
         # Initialize ROCmBlogs instance if not provided
@@ -1174,6 +1175,20 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
 
         rocm_blogs.blogs_directory = str(blogs_directory)
         track_operation_time("initialize_rocm_blogs_instance", operation_start)
+
+        # Initialize external content system
+        try:
+            external_content_start = time.time()
+            rocm_blogs.blogs.initialize_external_content(str(blogs_directory))
+            track_operation_time("initialize_external_content", external_content_start)
+            
+            log_message("info", "External content system initialized successfully", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, "External content system initialized\n")
+        except Exception as e:
+            log_message("warning", f"Failed to initialize external content: {e}", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, f"WARNING: External content initialization failed: {e}\n")
 
         if log_file_handle:
             safe_log_write(
@@ -2034,9 +2049,51 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"Final deduplication summary: {len(used_blog_ids)} blogs used across all sections\n",
             )
 
-        # Replace placeholders in the template
         if log_file_handle:
             safe_log_write(log_file_handle, "Replacing placeholders in the template\n")
+
+        external_content_html = ""
+        try:
+            external_items = rocm_blogs.blogs.get_recent_external_content(limit=6)
+            if external_items:
+                cards = []
+                for item in external_items:
+                    date_str = ""
+                    if item.date:
+                        date_str = item.date.strftime("%b %d, %Y")
+                    
+                    card_html = f'''
+                    <div class="external-content-card">
+                        <div class="external-content-header">
+                            <h3><a href="{item.url}" target="_blank" rel="noopener noreferrer">{item.title}</a></h3>
+                        </div>
+                        <p class="external-content-description">{item.description}</p>
+                        <div class="external-content-meta">
+                            <div class="external-content-author">{item.author}</div>
+                            {f'<div class="external-content-date">{date_str}</div>' if date_str else ''}
+                            <div class="external-content-source">{item.source_domain}</div>
+                        </div>
+                    </div>
+                    '''
+                    cards.append(card_html.strip())
+                
+                external_content_html = '\n'.join(cards)
+                log_message("info", f"Generated {len(cards)} external content cards", "external_content", "__init__")
+                if log_file_handle:
+                    safe_log_write(log_file_handle, f"Generated {len(cards)} external content cards\n")
+            else:
+                external_content_html = '<div class="external-content-card"><p>No external content available.</p></div>'
+                log_message("info", "No external content available", "external_content", "__init__")
+                if log_file_handle:
+                    safe_log_write(log_file_handle, "No external content available\n")
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            log_message("warning", f"Failed to generate external content: {e}\nTraceback: {error_details}", "external_content", "__init__")
+            if log_file_handle:
+                safe_log_write(log_file_handle, f"WARNING: Failed to generate external content: {e}\n")
+                safe_log_write(log_file_handle, f"Traceback: {error_details}\n")
+            external_content_html = ''
 
         updated_html = (
             index_template.replace("{grid_items}", "\n".join(main_grid_items))
@@ -2048,6 +2105,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             .replace("{software_grid_items}", "\n".join(software_grid_items))
             .replace("{featured_grid_items}", "\n".join(featured_grid_items))
             .replace("{banner_slider}", banner_content)
+            .replace("{external_content_items}", external_content_html)
         )
 
         # Write the updated HTML to blogs/index.md
@@ -3835,7 +3893,7 @@ def update_category_verticals(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None
             )
 
         # Sort categories by vertical if not already done
-        rocm_blogs.blogs.sort_categories_by_vertical(log_file_handle)
+        rocm_blogs.blogs.sort_categories_by_vertical()
 
         safe_log_write(
             log_file_handle, "Using shared blog data sorted by category and vertical\n"

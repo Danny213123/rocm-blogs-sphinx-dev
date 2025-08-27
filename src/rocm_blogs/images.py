@@ -26,17 +26,7 @@ WEBP_CONVERSION_STATISTICS = {
 
 
 def generate_responsive_images(source_image_path, target_widths=None, output_dir=None):
-    """Generate multiple resolution variants of an image for responsive loading.
-    
-    Args:
-        source_image_path: Path to the source image
-        target_widths: List of target widths for responsive images.
-                      Defaults to [375, 425, 768, 1024, 1440]
-        output_dir: Directory to save variants. If None, uses source directory
-    
-    Returns:
-        dict: Dictionary mapping widths to file paths of generated images
-    """
+    """Generate multiple resolution variants of an image for responsive loading."""
     if target_widths is None:
         # Default responsive breakpoints matching common device sizes with more intermediate sizes
         target_widths = [320, 375, 425, 480, 568, 640, 768, 896, 1024, 1280, 1440, 1600, 1920]
@@ -57,6 +47,8 @@ def generate_responsive_images(source_image_path, target_widths=None, output_dir
     
     try:
         with Image.open(source_image_path) as img:
+            # Load the image data completely into memory
+            img.load()
             original_width, original_height = img.size
             aspect_ratio = original_height / original_width
             

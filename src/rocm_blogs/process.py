@@ -1343,13 +1343,26 @@ def process_single_blog(blog_entry, rocm_blogs):
                         image_filename = os.path.basename(blog_entry.image_paths[0])
                         if not image_filename.lower().endswith('.webp'):
                             base_name, ext = os.path.splitext(image_filename)
-                            image_filename = f"{base_name}.webp"
-                            log_message(
-                                "info",
-                                f"Using WebP version: {image_filename} instead of {blog_entry.image_paths[0]}",
-                                "general",
-                                "process",
-                            )
+                            webp_filename = f"{base_name}.webp"
+                            
+                            # Check if the WebP version actually exists in the _images directory
+                            webp_path = os.path.join(os.path.dirname(rocm_blogs.output_dir), "_images", webp_filename)
+                            if os.path.exists(webp_path):
+                                image_filename = webp_filename
+                                log_message(
+                                    "info",
+                                    f"Using WebP version: {image_filename} instead of {os.path.basename(blog_entry.image_paths[0])}",
+                                    "general",
+                                    "process",
+                                )
+                            else:
+                                log_message(
+                                    "warning",
+                                    f"WebP version not found at {webp_path}, using generic image",
+                                    "general",
+                                    "process",
+                                )
+                                image_filename = "generic.webp"
                     else:
                         image_filename = "generic.webp"
 
@@ -1373,13 +1386,26 @@ def process_single_blog(blog_entry, rocm_blogs):
                         image_filename = os.path.basename(blog_entry.image_paths[0])
                         if not image_filename.lower().endswith('.webp'):
                             base_name, ext = os.path.splitext(image_filename)
-                            image_filename = f"{base_name}.webp"
-                            log_message(
-                                "info",
-                                f"Using WebP version in fallback: {image_filename} instead of {blog_entry.image_paths[0]}",
-                                "general",
-                                "process",
-                            )
+                            webp_filename = f"{base_name}.webp"
+                            
+                            # Check if the WebP version actually exists in the _images directory
+                            webp_path = os.path.join(os.path.dirname(rocm_blogs.output_dir), "_images", webp_filename)
+                            if os.path.exists(webp_path):
+                                image_filename = webp_filename
+                                log_message(
+                                    "info",
+                                    f"Using WebP version in fallback: {image_filename} instead of {os.path.basename(blog_entry.image_paths[0])}",
+                                    "general",
+                                    "process",
+                                )
+                            else:
+                                log_message(
+                                    "warning",
+                                    f"WebP version not found at {webp_path} in fallback, using generic image",
+                                    "general",
+                                    "process",
+                                )
+                                image_filename = "generic.webp"
                         blog_image_path = f"../../_images/{image_filename}"
                     else:
                         blog_image_path = "../../_images/generic.webp"
@@ -1393,17 +1419,26 @@ def process_single_blog(blog_entry, rocm_blogs):
                     base_name_no_ext = os.path.splitext(image_filename)[0]
                     # Use the same directory path format as the main image
                     image_base_dir = os.path.dirname(blog_image_path)
+                    images_dir = os.path.join(os.path.dirname(rocm_blogs.output_dir), "_images")
                     
-                    # Add responsive variants - matching the new widths from images.py
+                    # Add responsive variants - matching the new widths from images.py, but only if they exist
                     for width in [320, 375, 425, 480, 568, 640, 768, 896, 1024, 1280, 1440, 1600, 1920]:
                         variant_filename = f"{base_name_no_ext}-{width}w.webp"
-                        variant_path = f"{image_base_dir}/{variant_filename}"
-                        srcset_entries.append(f"{variant_path} {width}w")
+                        variant_file_path = os.path.join(images_dir, variant_filename)
+                        
+                        # Only add to srcset if the variant file actually exists
+                        if os.path.exists(variant_file_path):
+                            variant_path = f"{image_base_dir}/{variant_filename}"
+                            srcset_entries.append(f"{variant_path} {width}w")
                     
                     # Add original image as the largest option
                     srcset_entries.append(f"{blog_image_path} 2560w")
                     
-                    srcset_attr = ", ".join(srcset_entries)
+                    if srcset_entries:
+                        srcset_attr = ", ".join(srcset_entries)
+                    else:
+                        # Fallback if no responsive variants exist
+                        srcset_attr = f"{blog_image_path} 1920w"
                 else:
                     # For generic image, just use the single image
                     srcset_attr = f"{blog_image_path} 1920w"

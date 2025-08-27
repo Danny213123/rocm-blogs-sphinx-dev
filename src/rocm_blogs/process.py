@@ -1391,12 +1391,13 @@ def process_single_blog(blog_entry, rocm_blogs):
                 # Build srcset based on available responsive variants
                 if image_filename and image_filename != "generic.webp":
                     base_name_no_ext = os.path.splitext(image_filename)[0]
-                    image_base_path = f"{parent_directories}_images/"
+                    # Use the same directory path format as the main image
+                    image_base_dir = os.path.dirname(blog_image_path)
                     
                     # Add responsive variants - matching the new widths from images.py
                     for width in [320, 375, 425, 480, 568, 640, 768, 896, 1024, 1280, 1440, 1600, 1920]:
                         variant_filename = f"{base_name_no_ext}-{width}w.webp"
-                        variant_path = f"{image_base_path}{variant_filename}"
+                        variant_path = f"{image_base_dir}/{variant_filename}"
                         srcset_entries.append(f"{variant_path} {width}w")
                     
                     # Add original image as the largest option

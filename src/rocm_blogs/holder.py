@@ -9,7 +9,7 @@ import os
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from sphinx.util import logging as sphinx_logging
 
@@ -44,30 +44,30 @@ class BlogHolder:
         """Normalize title for consistent comparison."""
         if not title:
             return ""
-        
+
         title = title.replace("\u202f", " ")
         title = title.replace("\u00a0", " ")
         title = title.replace("\u2009", " ")
         title = title.replace("\u200b", "")
         title = title.replace("\u2013", "-")
         title = title.replace("\u2014", "-")
-        
+
         title = title.replace("\u2018", "'")
         title = title.replace("\u2019", "'")
         title = title.replace("\u201c", '"')
         title = title.replace("\u201d", '"')
-        
+
         title = " ".join(title.split())
-        
+
         title = title.lower()
-        
+
         return title
-    
+
     def _normalize_path(self, path: str) -> str:
         """Normalize file path for consistent comparison."""
         if not path:
             return ""
-        
+
         try:
             path_obj = Path(path).resolve()
             normalized = str(path_obj).replace("\\", "/")
@@ -88,9 +88,7 @@ class BlogHolder:
             if hasattr(blog, "file_path"):
                 filename = os.path.basename(blog.file_path)
                 title = (
-                    os.path.splitext(filename)[0]
-                    .replace("-", " ")
-                    .replace("_", " ")
+                    os.path.splitext(filename)[0].replace("-", " ").replace("_", " ")
                 )
                 title = self._normalize_title(title)
                 log_message(
@@ -114,6 +112,7 @@ class BlogHolder:
             key = f"{title}||{relevant_path}"
         else:
             import time
+
             key = f"{title}||no_path_{time.time()}"
 
         log_message("debug", f"Created normalized key for blog: {key}")
@@ -126,14 +125,14 @@ class BlogHolder:
             if normalized_path in self._seen_paths:
                 self._duplicate_count += 1
                 log_message(
-                    "warning", 
+                    "warning",
                     f"Duplicate blog path detected (count: {self._duplicate_count}): '{normalized_path}'",
                     "general",
-                    "holder"
+                    "holder",
                 )
                 raise KeyError(f"Blog with path '{normalized_path}' already exists.")
             self._seen_paths.add(normalized_path)
-        
+
         if hasattr(blog, "blog_title") and blog.blog_title:
             normalized_title = self._normalize_title(blog.blog_title)
             if normalized_title in self._seen_titles:
@@ -141,18 +140,18 @@ class BlogHolder:
                     "warning",
                     f"Blog with similar title already exists: '{blog.blog_title}'",
                     "general",
-                    "holder"
+                    "holder",
                 )
             self._seen_titles.add(normalized_title)
-        
+
         key = self._generate_blog_key(blog)
         if key in self.blogs:
             self._duplicate_count += 1
             log_message(
-                "warning", 
+                "warning",
                 f"Duplicate blog key detected (count: {self._duplicate_count}): '{key}'",
                 "general",
-                "holder"
+                "holder",
             )
             return
 
@@ -316,9 +315,7 @@ class BlogHolder:
 
                 featured_titles = []
                 for i, row in enumerate(raw_rows):
-                    if (
-                        row and row[0].strip()
-                    ):
+                    if row and row[0].strip():
                         title = row[0].strip()
 
                         if title.lower() in ["no newline at end of file", "eof", ""]:
@@ -425,9 +422,7 @@ class BlogHolder:
 
                 before_normalization = clean_title
                 clean_title = clean_title.replace("™", "™")
-                clean_title = clean_title.replace(
-                    "\u202f", " "
-                )
+                clean_title = clean_title.replace("\u202f", " ")
                 clean_title = clean_title.replace("\u00a0", " ")
                 clean_title = clean_title.replace("\u2009", " ")
 
@@ -1116,27 +1111,27 @@ class BlogHolder:
             "unique_paths": len(self._seen_paths),
             "unique_titles": len(self._seen_titles),
         }
-        
+
         log_message(
             "info",
             f"Duplicate Statistics - Total: {stats['total_blogs']}, Duplicates rejected: {stats['duplicate_attempts']}",
             "general",
-            "holder"
+            "holder",
         )
-        
+
         return stats
-    
+
     def find_potential_duplicates(self) -> List[Tuple[str, str, Blog, Blog]]:
         """Find blogs that might be duplicates based on similar titles or paths."""
         potential_duplicates = []
         blogs_list = list(self.blogs.values())
-        
+
         for i, blog1 in enumerate(blogs_list):
-            for blog2 in blogs_list[i+1:]:
+            for blog2 in blogs_list[i + 1 :]:
                 if hasattr(blog1, "blog_title") and hasattr(blog2, "blog_title"):
                     title1 = self._normalize_title(blog1.blog_title)
                     title2 = self._normalize_title(blog2.blog_title)
-                    
+
                     if title1 == title2:
                         potential_duplicates.append(
                             ("title_match", f"Title: {blog1.blog_title}", blog1, blog2)
@@ -1144,26 +1139,36 @@ class BlogHolder:
                     elif title1 and title2:
                         if title1 in title2 or title2 in title1:
                             potential_duplicates.append(
-                                ("title_similar", f"Titles: {blog1.blog_title} vs {blog2.blog_title}", blog1, blog2)
+                                (
+                                    "title_similar",
+                                    f"Titles: {blog1.blog_title} vs {blog2.blog_title}",
+                                    blog1,
+                                    blog2,
+                                )
                             )
-                
+
                 if hasattr(blog1, "file_path") and hasattr(blog2, "file_path"):
                     file1 = os.path.basename(blog1.file_path).lower()
                     file2 = os.path.basename(blog2.file_path).lower()
-                    
+
                     if file1 == file2 and blog1.file_path != blog2.file_path:
                         potential_duplicates.append(
-                            ("filename_match", f"Files: {blog1.file_path} vs {blog2.file_path}", blog1, blog2)
+                            (
+                                "filename_match",
+                                f"Files: {blog1.file_path} vs {blog2.file_path}",
+                                blog1,
+                                blog2,
+                            )
                         )
-        
+
         if potential_duplicates:
             log_message(
                 "warning",
                 f"Found {len(potential_duplicates)} potential duplicate pairs",
                 "general",
-                "holder"
+                "holder",
             )
-        
+
         return potential_duplicates
 
     def __repr__(self) -> str:

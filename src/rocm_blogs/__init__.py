@@ -95,7 +95,7 @@ if LOGGING_AVAILABLE and is_logging_enabled():
         print(f"Failed to initialize structured logging: {logging_error}")
         structured_logger = None
 
-        
+
 _CRITICAL_ERROR_OCCURRED = False
 
 _BUILD_START_TIME = time.time()
@@ -728,10 +728,9 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
         for author, blogs in rocm_blogs.blogs.blogs_authors.items():
             # Filter to only include genuine blog posts with blogpost flag
             genuine_blogs = [
-                blog for blog in blogs 
-                if hasattr(blog, "blogpost") and blog.blogpost
+                blog for blog in blogs if hasattr(blog, "blogpost") and blog.blogpost
             ]
-            
+
             if not genuine_blogs:
                 log_message(
                     "info",
@@ -746,7 +745,9 @@ def blog_statistics(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs) -> None:
                     )
                 continue
             sorted_blogs = sorted(
-                genuine_blogs, key=lambda b: b.date if b.date else datetime.min, reverse=True
+                genuine_blogs,
+                key=lambda b: b.date if b.date else datetime.min,
+                reverse=True,
             )
 
             # Get latest and first blog
@@ -1190,7 +1191,7 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
         operation_start = time.time()
         rocm_blogs.create_blog_objects()
         track_operation_time("create_blog_objects", operation_start)
-        
+
         # Report duplicate statistics
         duplicate_stats = rocm_blogs.blogs.get_duplicate_statistics()
         log_message(
@@ -1200,9 +1201,9 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             f"Unique paths: {duplicate_stats['unique_paths']}, "
             f"Unique titles: {duplicate_stats['unique_titles']}",
             "general",
-            "__init__"
+            "__init__",
         )
-        
+
         if log_file_handle:
             safe_log_write(
                 log_file_handle,
@@ -1210,9 +1211,9 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 f"  - Total blogs in collection: {duplicate_stats['total_blogs']}\n"
                 f"  - Duplicate attempts blocked: {duplicate_stats['duplicate_attempts']}\n"
                 f"  - Unique file paths: {duplicate_stats['unique_paths']}\n"
-                f"  - Unique blog titles: {duplicate_stats['unique_titles']}\n\n"
+                f"  - Unique blog titles: {duplicate_stats['unique_titles']}\n\n",
             )
-        
+
         # Check for potential duplicates that might have slipped through
         potential_duplicates = rocm_blogs.blogs.find_potential_duplicates()
         if potential_duplicates:
@@ -1220,18 +1221,17 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
                 "warning",
                 f"Found {len(potential_duplicates)} potential duplicate pairs that may need investigation",
                 "general",
-                "__init__"
+                "__init__",
             )
             if log_file_handle:
                 safe_log_write(
                     log_file_handle,
-                    f"Potential duplicates found ({len(potential_duplicates)} pairs):\n"
+                    f"Potential duplicates found ({len(potential_duplicates)} pairs):\n",
                 )
-                for dup_type, description, blog1, blog2 in potential_duplicates[:10]:  # Show first 10
-                    safe_log_write(
-                        log_file_handle,
-                        f"  - {dup_type}: {description}\n"
-                    )
+                for dup_type, description, blog1, blog2 in potential_duplicates[
+                    :10
+                ]:  # Show first 10
+                    safe_log_write(log_file_handle, f"  - {dup_type}: {description}\n")
 
         operation_start = time.time()
         rocm_blogs.blogs.write_to_file()

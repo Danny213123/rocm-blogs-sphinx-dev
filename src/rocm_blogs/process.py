@@ -1323,7 +1323,7 @@ def process_single_blog(blog_entry, rocm_blogs):
 
                     if blog_entry.image_paths:
                         image_filename = os.path.basename(blog_entry.image_paths[0])
-                        if not image_filename.lower().endswith('.webp'):
+                        if not image_filename.lower().endswith(".webp"):
                             base_name, ext = os.path.splitext(image_filename)
                             image_filename = f"{base_name}.webp"
                             log_message(
@@ -1353,7 +1353,7 @@ def process_single_blog(blog_entry, rocm_blogs):
                     )
                     if blog_entry.image_paths:
                         image_filename = os.path.basename(blog_entry.image_paths[0])
-                        if not image_filename.lower().endswith('.webp'):
+                        if not image_filename.lower().endswith(".webp"):
                             base_name, ext = os.path.splitext(image_filename)
                             image_filename = f"{base_name}.webp"
                             log_message(

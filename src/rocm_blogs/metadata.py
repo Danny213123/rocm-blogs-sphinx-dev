@@ -8,10 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from sphinx.util import logging as sphinx_logging
-
 from rocm_blogs import ROCmBlogs
 from rocm_blogs.constants import SUPPORTED_FORMATS
+from sphinx.util import logging as sphinx_logging
 
 from .logger.logger import (create_step_log_file,
                             is_logging_enabled_from_config, log_message,

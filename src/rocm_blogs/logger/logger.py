@@ -65,9 +65,13 @@ def log_message(
     except Exception:
         if level.lower() in ["error", "critical"]:
             try:
-                log_simple_message(level, f"[{component}:{operation}] {message}", operation)
+                log_simple_message(
+                    level, f"[{component}:{operation}] {message}", operation
+                )
             except ImportError:
-                formatted_message = f"[{level.upper()}] [{component}:{operation}] {message}"
+                formatted_message = (
+                    f"[{level.upper()}] [{component}:{operation}] {message}"
+                )
                 print(formatted_message, file=sys.stderr)
 
 
@@ -76,7 +80,7 @@ def create_step_log_file(step_name: str) -> tuple[Optional[str], Optional[Any]]:
     try:
         if not is_logging_enabled_from_config():
             return None, None
-        
+
         logs_dir = Path("logs")
         logs_dir.mkdir(exist_ok=True)
 

@@ -13,7 +13,7 @@ from .logger.logger import *
 
 
 def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False) -> str:
-    """Generate a single banner slide for a blog in NVIDIA-inspired style."""
+    """Generate a single banner slide for the index page."""
 
     log_message(
         "info",
@@ -35,14 +35,12 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    # Validate blog object
     if not blog:
         log_message(
             "error", "Blog object is None or empty!", "slide_generation", "banner"
         )
         return ""
 
-    # Log all blog attributes for debugging
     blog_attrs = [attr for attr in dir(blog) if not attr.startswith("_")]
     log_message(
         "debug", f"Blog object attributes: {blog_attrs}", "slide_generation", "banner"
@@ -56,11 +54,10 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    # Initialize variables to prevent UnboundLocalError
-    image = "./_images/generic.jpg"  # Default fallback
-    href = "#"  # Default fallback
-    description = "Explore the latest insights and developments in ROCm technology."  # Default fallback
-    author = "."  # Default fallback
+    image = "./_images/generic.webp"
+    href = "#"
+    description = "Explore the latest insights and developments in ROCm technology."
+    author = "."
 
     slide_template = """
 <div class="banner-slide{active_class}">
@@ -119,7 +116,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         return ""
 
-    # Escape HTML entities to prevent breaking the template
     log_message(
         "info", f"Step 3: Escaping HTML entities in title", "slide_generation", "banner"
     )
@@ -139,7 +135,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
     category = getattr(blog, "category", "ROCm Blog")
     category_link = category.lower().replace(" ", "-")
 
-    # split, remove special characters, and convert to lowercase then join
     category_link = "-".join(
         re.sub(r"[^a-z0-9]+", "-", part.strip().lower()) for part in category.split("-")
     ).lower()
@@ -156,10 +151,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         thumbnail_path = blog.thumbnail
         thumbnail_base = os.path.splitext(thumbnail_path)[0]
 
-        # Try to find the best available thumbnail format
         thumbnail_found = False
 
-        # Priority order: webp, jpg, jpeg, png (webp is preferred)
         extensions_to_try = [".webp", ".jpg", ".jpeg", ".png"]
         search_paths = [
             rocmblogs.blogs_directory,
@@ -207,7 +200,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    # Log blog image state before grab_image
     log_message(
         "debug",
         f"Before grab_image - Has image_paths: {hasattr(blog, 'image_paths')}",
@@ -245,7 +237,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         return ""
 
-    # Log blog image state after grab_image
     log_message(
         "debug",
         f"After grab_image - Has image_paths: {hasattr(blog, 'image_paths')}",
@@ -449,10 +440,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    # Try to get href from blog object, with fallback URL generation
-    href = "#"  # Default fallback
+    href = "#"
 
-    # First try to get the blog URL directly if available
     if hasattr(blog, "blog_url") and blog.blog_url:
         href = f".{blog.blog_url}"
         log_message(
@@ -462,7 +451,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             "banner",
         )
     else:
-        # Try the existing grab_href method
         try:
             raw_href = blog.grab_href()
             log_message(
@@ -606,7 +594,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    # Log all template variables before formatting
     log_message(
         "info", f"Step 11: Template variables summary:", "slide_generation", "banner"
     )
@@ -634,7 +621,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         result = slide_template.format(
             active_class=active_class,
-            title=title_escaped,  # Use escaped title
+            title=title_escaped,
             category=category,
             category_url=category_url,
             image=image,
@@ -649,7 +636,6 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             "banner",
         )
 
-        # Log a preview of the generated HTML
         html_preview = result[:300] + "..." if len(result) > 300 else result
         log_message(
             "debug",

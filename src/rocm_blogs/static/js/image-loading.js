@@ -1,46 +1,46 @@
 document.addEventListener('DOMContentLoaded', function() {
-
+    // Simple and effective image loading handler
     function handleImageLoading() {
-        const lazyImages = document.querySelectorAll('img[loading="lazy"], .sd-card-img-top');
-
-        lazyImages.forEach(img => {
+        const images = document.querySelectorAll('img.responsive-image, img.wp-post-image, .sd-card-img-top');
+        
+        images.forEach(img => {
+            // Add loading class initially
             if (!img.complete) {
                 img.classList.add('loading');
             }
-        });
-
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-
-                    const handleLoad = () => {
-                        setTimeout(() => {
-                            img.classList.remove('loading');
-                        }, 50);
-                        img.removeEventListener('load', handleLoad);
-                    };
-
-                    if (img.complete) {
-                        img.classList.remove('loading');
-                    } else {
-                        img.addEventListener('load', handleLoad);
-                    }
-
-                    observer.unobserve(img);
+            
+            // Handle successful load
+            img.addEventListener('load', function() {
+                this.classList.remove('loading');
+                this.classList.add('loaded');
+            });
+            
+            // Handle errors gracefully
+            img.addEventListener('error', function() {
+                console.warn('Image failed to load:', this.src);
+                this.classList.remove('loading');
+                this.classList.add('error');
+                // Fallback to base image if srcset fails
+                if (this.srcset) {
+                    this.srcset = '';
+                    // Try loading just the src
+                    const baseSrc = this.src;
+                    this.src = '';
+                    this.src = baseSrc;
                 }
             });
-        }, {
-            rootMargin: '200px 0px',
-            threshold: 0.01
-        });
-
-        lazyImages.forEach(img => {
-            imageObserver.observe(img);
+            
+            // If already loaded
+            if (img.complete && img.naturalWidth > 0) {
+                img.classList.remove('loading');
+                img.classList.add('loaded');
+            }
         });
     }
-
+    
+    // Run immediately
     handleImageLoading();
-
-    setTimeout(handleImageLoading, 500);
+    
+    // Run again after a short delay to catch dynamically added images
+    setTimeout(handleImageLoading, 100);
 });

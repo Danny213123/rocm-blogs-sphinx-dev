@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from sphinx.util import logging as sphinx_logging
 
 from .blog import Blog
+from .external_content import ExternalContentLoader
 from .logger.logger import *
 
 
@@ -39,6 +40,7 @@ class BlogHolder:
         self._seen_paths: Set[str] = set()
         self._seen_titles: Set[str] = set()
         self._duplicate_count = 0
+        self.external_content_loader = None
 
     def _normalize_title(self, title: str) -> str:
         """Normalize title for consistent comparison."""
@@ -740,24 +742,18 @@ class BlogHolder:
         log_message("debug", "Blogs sorted by date")
         return list(self.blogs.values())
 
-    def sort_categories_by_vertical(self, log_file_handle) -> list[Blog]:
+    def sort_categories_by_vertical(self) -> list[Blog]:
         """Sort the categories by vertical."""
 
         for category in self.blogs_categories:
             for blog in self.blogs_categories[category]:
                 if not hasattr(blog, "metadata") or not blog.metadata:
-                    if log_file_handle:
-                        log_file_handle.write("Blog has no metadata\n")
                     continue
                 else:
                     blog_vertical_str = (
                         blog.metadata.get("myst").get("html_meta").get("vertical")
                     )
                     if blog_vertical_str is None:
-                        if log_file_handle:
-                            log_file_handle.write(
-                                f"Blog '{blog.blog_title}' has no vertical metadata\n"
-                            )
                         continue
                     blog_vertical = [
                         v.strip() for v in blog_vertical_str.split(",") if v.strip()
@@ -790,90 +786,46 @@ class BlogHolder:
 
             log_message("debug", f"Initialized vertical: {vertical}")
 
-        if is_logging_enabled_from_config():
-            logs_directory = Path("logs")
-            logs_directory.mkdir(exist_ok=True)
+        vertical_counts = {}
+        for blog in self.blogs.values():
+            if not hasattr(blog, "metadata") or not blog.metadata:
+                continue
+            else:
+                myst_section = blog.metadata.get("myst", {})
+                html_meta = myst_section.get("html_meta", {})
+                blog_vertical_str = html_meta.get("vertical")
 
-            log_filepath = logs_directory / "blogs_vertical.log"
-            log_file_handle = open(log_filepath, "w", encoding="utf-8")
-        else:
-            log_file_handle = None
-
-        try:
-            vertical_counts = {}
-            for blog in self.blogs.values():
-                if log_file_handle:
-                    log_file_handle.write(f"Blog: {blog}\n")
-                    log_file_handle.write(f"Metadata: {blog.grab_metadata()}\n")
-
-                if not hasattr(blog, "metadata") or not blog.metadata:
-                    if log_file_handle:
-                        log_file_handle.write("Blog has no metadata\n")
+                if blog_vertical_str is None:
                     continue
-                else:
-                    myst_section = blog.metadata.get("myst", {})
-                    html_meta = myst_section.get("html_meta", {})
-                    blog_vertical_str = html_meta.get("vertical")
-
-                    if log_file_handle:
-                        log_file_handle.write(f"myst section: {myst_section}\n")
-                        log_file_handle.write(f"html_meta section: {html_meta}\n")
-                        log_file_handle.write(f"vertical value: {blog_vertical_str}\n")
-
-                    if blog_vertical_str is None:
-                        if log_file_handle:
-                            log_file_handle.write(
-                                f"Blog '{getattr(blog, 'blog_title', 'Unknown')}' has no vertical metadata\n"
-                            )
+                blog_vertical = [
+                    v.strip() for v in blog_vertical_str.split(",") if v.strip()
+                ]
+                for vertical in blog_vertical:
+                    if vertical not in self.blogs_verticals:
                         continue
-                    blog_vertical = [
-                        v.strip() for v in blog_vertical_str.split(",") if v.strip()
-                    ]
-                    for vertical in blog_vertical:
-                        if vertical not in self.blogs_verticals:
-                            if log_file_handle:
-                                log_file_handle.write(
-                                    f"Vertical '{vertical}' not recognized\n"
-                                )
-                            continue
-                        if vertical not in vertical_counts:
-                            vertical_counts[vertical] = 0
-                        vertical_counts[vertical] += 1
-                        self.blogs_verticals[vertical].append(blog)
-                        if log_file_handle:
-                            log_file_handle.write(
-                                f"Blog '{blog.blog_title}' added to vertical '{vertical}'\n"
-                            )
+                    if vertical not in vertical_counts:
+                        vertical_counts[vertical] = 0
+                    vertical_counts[vertical] += 1
+                    self.blogs_verticals[vertical].append(blog)
 
-            if log_file_handle:
-                log_file_handle.write("\nVertical counts:\n")
-                for vertical, count in vertical_counts.items():
-                    log_file_handle.write(f"{vertical}: {count} blogs\n")
-                    log_message(
-                        "info",
-                        "Vertical '{vertical}' has {count} blogs",
-                        "general",
-                        "holder",
-                    )
+        for vertical, count in vertical_counts.items():
+            log_message(
+                "info",
+                f"Vertical '{vertical}' has {count} blogs",
+                "general",
+                "holder",
+            )
 
-                log_file_handle.write("\nBlogs in each vertical:\n")
-                for vertical, blogs in self.blogs_verticals.items():
-                    log_file_handle.write(f"{vertical}:\n")
-                    for blog in blogs:
-                        log_file_handle.write(f"  - {blog.blog_title}\n")
-                        log_message(
-                            "info",
-                            "Blog '{blog.blog_title}' belongs to vertical '{vertical}'",
-                            "general",
-                            "holder",
-                        )
-                    if not blogs:
-                        log_file_handle.write(f"  - No blogs in this vertical\n")
-                        log_message("warning", f"Vertical '{vertical}' has no blogs")
-
-        finally:
-            if log_file_handle:
-                log_file_handle.close()
+        for vertical, blogs in self.blogs_verticals.items():
+            for blog in blogs:
+                log_message(
+                    "info",
+                    f"Blog '{blog.blog_title}' belongs to vertical '{vertical}'",
+                    "general",
+                    "holder",
+                )
+            if not blogs:
+                log_message("warning", f"Vertical '{vertical}' has no blogs")
 
     def sort_blogs_by_category(self, categories) -> list[Blog]:
         """Sort the blogs by category."""
@@ -1170,6 +1122,60 @@ class BlogHolder:
             )
 
         return potential_duplicates
+
+    def initialize_external_content(self, blogs_directory: str) -> None:
+        """Initialize external content loader."""
+        log_message(
+            "info",
+            f"Initializing external content loader with directory: {blogs_directory}",
+            "external_content",
+            "holder",
+        )
+
+        self.external_content_loader = ExternalContentLoader(blogs_directory)
+        external_content = self.external_content_loader.load_from_csv()
+
+        log_message(
+            "info",
+            f"Initialized external content with {len(external_content)} items",
+            "external_content",
+            "holder",
+        )
+
+    def get_external_content(self, category: str = None, limit: int = None):
+        """Get external content, optionally filtered by category."""
+        if not self.external_content_loader:
+            return []
+
+        if category:
+            content = self.external_content_loader.get_by_category(category)
+        else:
+            content = self.external_content_loader.external_content
+
+        if limit:
+            content = content[:limit]
+
+        return content
+
+    def get_recent_external_content(self, limit: int = 5):
+        """Get recent external content."""
+        if not self.external_content_loader:
+            log_message(
+                "warning",
+                "External content loader not initialized",
+                "external_content",
+                "holder",
+            )
+            return []
+
+        recent_content = self.external_content_loader.get_recent(limit)
+        log_message(
+            "info",
+            f"Retrieved {len(recent_content)} recent external content items",
+            "external_content",
+            "holder",
+        )
+        return recent_content
 
     def __repr__(self) -> str:
         """Return a string representation of the class."""

@@ -25,8 +25,218 @@ WEBP_CONVERSION_STATISTICS = {
 }
 
 
+def generate_responsive_images(source_image_path, target_widths=None, output_dir=None):
+    if target_widths is None:
+        # Optimized responsive breakpoints for performance and bandwidth efficiency
+        # Covers all major device categories with minimal variants for fast loading
+        target_widths = [
+            320,  # Mobile portrait (saves ~75% bandwidth vs desktop)
+            480,  # Mobile landscape / small tablet
+            640,  # Tablet portrait (good balance for mid-range devices)
+            768,  # Large tablet / small desktop
+            1024,
+            1440,
+        ]
+
+    source_dir = output_dir if output_dir else os.path.dirname(source_image_path)
+    base_name = os.path.splitext(os.path.basename(source_image_path))[0]
+    _, file_extension = os.path.splitext(source_image_path)
+
+    responsive_images = {}
+
+    if not source_image_path or not os.path.exists(source_image_path):
+        log_message("warning", f"Source image not found: {source_image_path}")
+        return responsive_images
+
+    if file_extension.lower() in EXCLUDED_EXTENSIONS:
+        log_message(
+            "info",
+            f"Skipping responsive generation for excluded format: {file_extension}",
+        )
+        return {0: source_image_path}
+
+    try:
+        os.makedirs(source_dir, exist_ok=True)
+    except Exception as dir_error:
+        log_message(
+            "error", f"Failed to create output directory {source_dir}: {dir_error}"
+        )
+        return responsive_images
+
+    try:
+        with Image.open(source_image_path) as img:
+            img.load()
+
+            img_copy = img.copy()
+
+        original_width, original_height = img_copy.size
+        aspect_ratio = original_height / original_width if original_width > 0 else 1
+
+        if original_width <= 2560:
+            responsive_images[original_width] = source_image_path
+
+        log_message(
+            "info",
+            f"Generating responsive images for: {base_name} (original: {original_width}x{original_height})",
+        )
+
+        variants_created = 0
+
+        if original_width >= 1920 and 1920 not in target_widths:
+            target_widths = target_widths + [1920]
+
+        for target_width in sorted(target_widths):
+            if target_width > original_width:
+                log_message(
+                    "debug",
+                    f"Skipping {target_width}w (larger than original {original_width}w)",
+                )
+                continue
+
+            target_height = max(1, int(target_width * aspect_ratio))
+
+            variant_filename = f"{base_name}-{target_width}w.webp"
+            variant_path = os.path.join(source_dir, variant_filename)
+
+            if os.path.exists(variant_path):
+                try:
+                    with Image.open(variant_path) as test_img:
+                        test_img.verify()
+                    responsive_images[target_width] = variant_path
+                    log_message(
+                        "debug",
+                        f"Responsive variant already exists: {variant_filename}",
+                    )
+                    continue
+                except Exception:
+                    log_message(
+                        "warning",
+                        f"Existing variant {variant_filename} is corrupted, recreating",
+                    )
+                    try:
+                        os.remove(variant_path)
+                    except:
+                        pass
+
+            try:
+                log_message(
+                    "info",
+                    f"Creating variant: {variant_filename} ({target_width}x{target_height})",
+                )
+
+                resized_img = img_copy.resize(
+                    (target_width, target_height), resample=Image.LANCZOS
+                )
+
+                if resized_img.mode not in ("RGB", "RGBA"):
+                    if resized_img.mode == "P":
+                        resized_img = resized_img.convert(
+                            "RGBA" if "transparency" in resized_img.info else "RGB"
+                        )
+                    else:
+                        resized_img = resized_img.convert("RGB")
+
+                # Optimize quality based on image size for better performance
+                if target_width <= 480:
+                    # Mobile images - prioritize smaller file sizes
+                    quality = 82
+                    method = 4  # Faster compression
+                elif target_width <= 1024:
+                    # Tablet/small desktop - balance quality and size
+                    quality = 88
+                    method = 5
+                else:
+                    # Large desktop - higher quality
+                    quality = 92
+                    method = 6
+
+                resized_img.save(
+                    variant_path,
+                    format="WEBP",
+                    quality=quality,
+                    method=method,
+                    optimize=True,
+                    exact=False,  # Allow encoder flexibility for better compression
+                )
+
+                if os.path.exists(variant_path) and os.path.getsize(variant_path) > 0:
+                    responsive_images[target_width] = variant_path
+                    variants_created += 1
+                    log_message(
+                        "info",
+                        f"✓ Created responsive variant: {variant_filename} ({target_width}x{target_height})",
+                    )
+                else:
+                    log_message("error", f"Failed to create valid {variant_filename}")
+
+                resized_img.close()
+
+                # Generate ultra-low quality placeholder for fast initial loading (slow connections)
+                if target_width == 320:  # Only for smallest size to minimize build time
+                    try:
+                        placeholder_width = 32
+                        placeholder_height = max(
+                            1, int(placeholder_width * aspect_ratio)
+                        )
+                        placeholder_img = img_copy.resize(
+                            (placeholder_width, placeholder_height),
+                            resample=Image.LANCZOS,
+                        )
+
+                        if placeholder_img.mode not in ("RGB", "RGBA"):
+                            placeholder_img = placeholder_img.convert("RGB")
+
+                        placeholder_path = os.path.join(
+                            source_dir, f"{base_name}-placeholder.webp"
+                        )
+
+                        placeholder_img.save(
+                            placeholder_path,
+                            format="WEBP",
+                            quality=30,  # Very low quality for tiny file size
+                            method=1,  # Fastest compression
+                            optimize=True,
+                        )
+
+                        placeholder_img.close()
+                        log_message(
+                            "info", f"Generated placeholder: {placeholder_path}"
+                        )
+
+                    except Exception as placeholder_error:
+                        log_message(
+                            "warning",
+                            f"Failed to generate placeholder: {placeholder_error}",
+                        )
+
+            except Exception as resize_error:
+                log_message(
+                    "error", f"Failed to create {target_width}w variant: {resize_error}"
+                )
+                if os.path.exists(variant_path):
+                    try:
+                        os.remove(variant_path)
+                    except:
+                        pass
+
+        img_copy.close()
+
+        log_message(
+            "info", f"Generated {variants_created} responsive variants for {base_name}"
+        )
+
+    except Exception as e:
+        log_message(
+            "error", f"Error generating responsive images for {source_image_path}: {e}"
+        )
+        import traceback
+
+        log_message("debug", f"Traceback: {traceback.format_exc()}")
+
+    return responsive_images
+
+
 def convert_to_webp(source_image_path):
-    """Convert an image to WebP format with proper resizing."""
     source_image_filename = os.path.basename(source_image_path)
     webp_image_path = os.path.splitext(source_image_path)[0] + ".webp"
 
@@ -42,7 +252,6 @@ def convert_to_webp(source_image_path):
         )
         return False, None
 
-    # Skip conversion for .gif files (and other excluded extensions)
     if file_extension.lower() in EXCLUDED_EXTENSIONS:
         log_message(
             "info",
@@ -58,6 +267,7 @@ def convert_to_webp(source_image_path):
 
     if os.path.exists(webp_image_path):
         log_message("debug", f"WebP version already exists: {webp_image_path}")
+        generate_responsive_images(webp_image_path)
         return True, webp_image_path
 
     try:
@@ -113,6 +323,8 @@ def convert_to_webp(source_image_path):
                 "images",
             )
 
+            generate_responsive_images(webp_image_path)
+
             return True, webp_image_path
 
     except Exception as webp_conversion_error:
@@ -123,7 +335,6 @@ def convert_to_webp(source_image_path):
 
 
 def optimize_image(source_image_path, blog_thumbnail_filenames=None):
-    """Optimize images for web display and convert to WebP format."""
     source_image_filename = os.path.basename(source_image_path)
     backup_image_path = f"{source_image_path}.bak"
     webp_image_path = os.path.splitext(source_image_path)[0] + ".webp"
@@ -216,7 +427,6 @@ def optimize_image(source_image_path, blog_thumbnail_filenames=None):
 def _should_optimize_image(
     source_image_path, source_image_filename, blog_thumbnail_filenames
 ):
-    """Check if the image should be optimized."""
     if blog_thumbnail_filenames is not None:
         if (
             source_image_filename not in blog_thumbnail_filenames
@@ -242,7 +452,6 @@ def _should_optimize_image(
 
 
 def _create_backup(source_image_path, backup_image_path):
-    """Create a backup of the original image."""
     try:
         shutil.copy2(source_image_path, backup_image_path)
         return True
@@ -254,7 +463,6 @@ def _create_backup(source_image_path, backup_image_path):
 
 
 def _restore_from_backup(backup_image_path, source_image_path, source_image_filename):
-    """Restore the original image from backup."""
     if os.path.exists(backup_image_path):
         log_message(
             "info",
@@ -272,7 +480,6 @@ def _restore_from_backup(backup_image_path, source_image_path, source_image_file
 def _verify_image_integrity(
     pil_image, source_image_path, backup_image_path, source_image_filename
 ):
-    """Verify the image is not corrupted."""
     try:
         pil_image.verify()
         return True
@@ -289,7 +496,6 @@ def _verify_image_integrity(
 def _handle_problematic_image(
     pil_image, source_image_path, backup_image_path, source_image_filename
 ):
-    """Handle problematic images with more conservative optimization."""
     log_message(
         "info",
         "Using conservative optimization for {source_image_filename}",
@@ -354,9 +560,7 @@ def _handle_problematic_image(
 def _create_webp_version(
     optimized_image, webp_image_path, original_image_path, original_file_size
 ):
-    """Create a WebP version of the image."""
 
-    # check if file extension is in excluded list
     _, file_extension = os.path.splitext(original_image_path)
     file_extension = file_extension.lower()
     if file_extension in EXCLUDED_EXTENSIONS:
@@ -439,9 +643,7 @@ def _process_image(
     backup_image_path,
     source_image_filename,
 ):
-    """Process the image by stripping metadata and resizing if needed."""
 
-    # check if file extension is in excluded list
     _, file_extension = os.path.splitext(source_image_path)
     file_extension = file_extension.lower()
     if file_extension in EXCLUDED_EXTENSIONS:
@@ -497,7 +699,6 @@ def _resize_image(
     force_exact=False,
     source_image_filename=None,
 ):
-    """Resize image to target dimensions."""
     try:
         if force_exact:
             resized_image = pil_image.resize(
@@ -518,7 +719,6 @@ def _resize_image(
 def _resize_content_image(
     pil_image, source_image_width, source_image_height, source_image_filename=None
 ):
-    """Resize content image maintaining aspect ratio if needed."""
     max_width, max_height = CONTENT_MAX_DIMENSIONS
 
     if source_image_width <= max_width and source_image_height <= max_height:
@@ -550,7 +750,6 @@ def _resize_content_image(
 def _save_optimized_image(
     optimized_image, optimized_image_path, backup_image_path, source_image_filename
 ):
-    """Save the optimized image with format-specific settings."""
     try:
         _, file_extension = os.path.splitext(optimized_image_path)
         file_extension = file_extension.lower()
@@ -578,7 +777,6 @@ def _save_optimized_image(
                 optimized_image_path, format="WEBP", **FORMAT_SETTINGS["WEBP"]
             )
         elif file_extension in EXCLUDED_EXTENSIONS:
-            # skip GIF optimization
             log_message(
                 "info",
                 "Skipping optimization for {source_image_filename}",
@@ -608,7 +806,6 @@ def _verify_and_check_size_reduction(
     source_image_format,
     source_image_filename,
 ):
-    """Verify the optimized image and check if size reduction is beneficial."""
     try:
         with Image.open(optimized_image_path) as verify_image:
             verify_image.verify()
@@ -661,7 +858,6 @@ def _verify_and_check_size_reduction(
 
 
 def optimize_generic_image(sphinx_app=None):
-    """Optimize the generic.jpg image and convert it to WebP format."""
     start_time = datetime.now()
     static_generic_image_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),

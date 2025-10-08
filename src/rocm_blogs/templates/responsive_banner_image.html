@@ -1,0 +1,38 @@
+<div class="banner-image-container">
+    <picture>
+        <source media="(max-width: 320px)" srcset="{IMAGE_URL_320}">
+        <source media="(max-width: 480px)" srcset="{IMAGE_URL_480}">
+        <source media="(max-width: 640px)" srcset="{IMAGE_URL_640}">
+        <source media="(max-width: 768px)" srcset="{IMAGE_URL_768}">
+        <source media="(max-width: 1024px)" srcset="{IMAGE_URL_1024}">
+        <source media="(max-width: 1440px)" srcset="{IMAGE_URL_1440}">
+        <img 
+            width="1920" 
+            height="1080" 
+            src="{IMAGE_URL_1024}" 
+            class="img-fluid banner-image" 
+            alt="{ALT_TEXT}" 
+            decoding="async" 
+            fetchpriority="high" 
+            loading="eager"
+            srcset="{IMAGE_URL_320} 320w,
+                    {IMAGE_URL_480} 480w,
+                    {IMAGE_URL_640} 640w,
+                    {IMAGE_URL_768} 768w,
+                    {IMAGE_URL_1024} 1024w,
+                    {IMAGE_URL_1440} 1440w,
+                    {IMAGE_URL_1920} 1920w" 
+            sizes="(max-width: 320px) 320px,
+                   (max-width: 480px) 480px,
+                   (max-width: 640px) 640px,
+                   (max-width: 768px) 768px,
+                   (max-width: 1024px) 1024px,
+                   (max-width: 1440px) 1440px,
+                   100vw"
+            onerror="this.onerror=null; this.srcset=''; this.classList.add('image-error');"
+        >
+    </picture>
+    <noscript>
+        <img src="{IMAGE_URL_1024}" alt="{ALT_TEXT}" class="img-fluid">
+    </noscript>
+</div>

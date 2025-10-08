@@ -1062,9 +1062,19 @@ def process_single_blog(blog_entry, rocm_blogs):
                                 if webp_found:
                                     # Use existing WebP version
                                     blog_entry.image_paths[i] = webp_destination
+
+                                    # Generate responsive variants if they don't exist
+                                    from .images import \
+                                        generate_responsive_images
+
+                                    images_dir = os.path.dirname(webp_destination)
+                                    generate_responsive_images(
+                                        webp_destination, output_dir=images_dir
+                                    )
+
                                     log_message(
                                         "info",
-                                        f"Using existing WebP version: {webp_destination}",
+                                        f"Using existing WebP version and ensuring responsive variants: {webp_destination}",
                                         "general",
                                         "process",
                                     )
@@ -1080,16 +1090,39 @@ def process_single_blog(blog_entry, rocm_blogs):
                                     )
 
                                     try:
-                                        from .images import convert_to_webp
+                                        from .images import (
+                                            convert_to_webp,
+                                            generate_responsive_images)
 
-                                        convert_to_webp(image_path, webp_destination)
-                                        blog_entry.image_paths[i] = webp_destination
-                                        log_message(
-                                            "info",
-                                            f"Created WebP version for blog page: {webp_destination}",
-                                            "general",
-                                            "process",
-                                        )
+                                        # Convert to WebP first
+                                        success, webp_path = convert_to_webp(image_path)
+                                        if success and webp_path:
+                                            # Copy the webp to destination
+                                            if (
+                                                os.path.exists(webp_path)
+                                                and webp_path != webp_destination
+                                            ):
+                                                shutil.copy2(
+                                                    webp_path, webp_destination
+                                                )
+                                            blog_entry.image_paths[i] = webp_destination
+
+                                            # Generate responsive variants for blog thumbnails
+                                            images_dir = os.path.dirname(
+                                                webp_destination
+                                            )
+                                            generate_responsive_images(
+                                                webp_destination, output_dir=images_dir
+                                            )
+
+                                            log_message(
+                                                "info",
+                                                f"Created WebP version and responsive variants for blog page: {webp_destination}",
+                                                "general",
+                                                "process",
+                                            )
+                                        else:
+                                            raise Exception("WebP conversion failed")
                                     except Exception as webp_error:
                                         log_message(
                                             "warning",
@@ -1322,24 +1355,167 @@ def process_single_blog(blog_entry, rocm_blogs):
                     )
 
                     if blog_entry.image_paths:
-                        image_filename = os.path.basename(blog_entry.image_paths[0])
+                        full_image_path = blog_entry.image_paths[0]
+                        image_filename = os.path.basename(full_image_path)
+                        log_message(
+                            "info",
+                            f"Blog '{getattr(blog_entry, 'blog_title', 'unknown')}' has image_path: {full_image_path}",
+                            "general",
+                            "process",
+                        )
+
                         if not image_filename.lower().endswith(".webp"):
                             base_name, ext = os.path.splitext(image_filename)
-                            image_filename = f"{base_name}.webp"
-                            log_message(
-                                "info",
-                                f"Using WebP version: {image_filename} instead of {blog_entry.image_paths[0]}",
-                                "general",
-                                "process",
+                            webp_filename = f"{base_name}.webp"
+
+                            # First, check if WebP version exists in the same directory as the original
+                            webp_in_original_dir = os.path.join(
+                                os.path.dirname(full_image_path), webp_filename
                             )
+                            webp_in_images_dir = os.path.join(
+                                rocm_blogs.blogs_directory, "_images", webp_filename
+                            )
+
+                            if os.path.exists(webp_in_original_dir):
+                                # Use the WebP version from the original location
+                                image_filename = webp_filename
+                                # Copy it to _images if it doesn't exist there
+                                if not os.path.exists(webp_in_images_dir):
+                                    os.makedirs(
+                                        os.path.dirname(webp_in_images_dir),
+                                        exist_ok=True,
+                                    )
+                                    shutil.copy2(
+                                        webp_in_original_dir, webp_in_images_dir
+                                    )
+                                    log_message(
+                                        "info",
+                                        f"Copied WebP to _images: {webp_filename}",
+                                        "general",
+                                        "process",
+                                    )
+                                    # Generate responsive variants
+                                    from .images import \
+                                        generate_responsive_images
+
+                                    generate_responsive_images(webp_in_images_dir)
+                                log_message(
+                                    "info",
+                                    f"Using WebP version: {image_filename} from original directory",
+                                    "general",
+                                    "process",
+                                )
+                            elif os.path.exists(webp_in_images_dir):
+                                image_filename = webp_filename
+                                log_message(
+                                    "info",
+                                    f"Using WebP version: {image_filename} from _images directory",
+                                    "general",
+                                    "process",
+                                )
+                            else:
+                                # Check if original image exists and can be converted
+                                if os.path.exists(full_image_path):
+                                    log_message(
+                                        "info",
+                                        f"Original image found at {full_image_path}, will use it directly",
+                                        "general",
+                                        "process",
+                                    )
+                                    # Copy original to _images and keep original filename
+                                    dest_path = os.path.join(
+                                        rocm_blogs.blogs_directory,
+                                        "_images",
+                                        image_filename,
+                                    )
+                                    if not os.path.exists(dest_path):
+                                        os.makedirs(
+                                            os.path.dirname(dest_path), exist_ok=True
+                                        )
+                                        shutil.copy2(full_image_path, dest_path)
+                                        log_message(
+                                            "info",
+                                            f"Copied original to _images: {image_filename}",
+                                            "general",
+                                            "process",
+                                        )
+                                        # Generate responsive variants
+                                        from .images import \
+                                            generate_responsive_images
+
+                                        generate_responsive_images(dest_path)
+                                else:
+                                    log_message(
+                                        "warning",
+                                        f"Neither WebP nor original image found for {image_filename}, using generic",
+                                        "general",
+                                        "process",
+                                    )
+                                    image_filename = "generic.webp"
+                        else:
+                            # Image is already WebP - check if it exists and copy to _images if needed
+                            webp_in_images_dir = os.path.join(
+                                rocm_blogs.blogs_directory, "_images", image_filename
+                            )
+                            if os.path.exists(full_image_path):
+                                if not os.path.exists(webp_in_images_dir):
+                                    os.makedirs(
+                                        os.path.dirname(webp_in_images_dir),
+                                        exist_ok=True,
+                                    )
+                                    shutil.copy2(full_image_path, webp_in_images_dir)
+                                    log_message(
+                                        "info",
+                                        f"Copied WebP to _images: {image_filename}",
+                                        "general",
+                                        "process",
+                                    )
+                                    # Generate responsive variants
+                                    from .images import \
+                                        generate_responsive_images
+
+                                    generate_responsive_images(webp_in_images_dir)
+                                log_message(
+                                    "info",
+                                    f"Using WebP image: {image_filename}",
+                                    "general",
+                                    "process",
+                                )
+                            else:
+                                log_message(
+                                    "warning",
+                                    f"WebP image not found at {full_image_path}, using generic",
+                                    "general",
+                                    "process",
+                                )
+                                image_filename = "generic.webp"
                     else:
                         image_filename = "generic.webp"
 
                     blog_image_path = f"{parent_directories}_images/{image_filename}"
 
+                    # Validate that the main image actually exists
+                    main_image_full_path = os.path.join(
+                        rocm_blogs.blogs_directory, "_images", image_filename
+                    )
+                    if not os.path.exists(main_image_full_path):
+                        log_message(
+                            "warning",
+                            f"Main image not found at: {main_image_full_path}, falling back to generic",
+                            "general",
+                            "process",
+                        )
+                        image_filename = "generic.webp"
+                        blog_image_path = (
+                            f"{parent_directories}_images/{image_filename}"
+                        )
+                        main_image_full_path = os.path.join(
+                            rocm_blogs.blogs_directory, "_images", image_filename
+                        )
+
                     log_message(
                         "info",
-                        f"Using image path for blog: {blog_image_path}",
+                        f"Using image path for blog: {blog_image_path} (exists: {os.path.exists(main_image_full_path)})",
                         "general",
                         "process",
                     )
@@ -1355,20 +1531,156 @@ def process_single_blog(blog_entry, rocm_blogs):
                         image_filename = os.path.basename(blog_entry.image_paths[0])
                         if not image_filename.lower().endswith(".webp"):
                             base_name, ext = os.path.splitext(image_filename)
-                            image_filename = f"{base_name}.webp"
-                            log_message(
-                                "info",
-                                f"Using WebP version in fallback: {image_filename} instead of {blog_entry.image_paths[0]}",
-                                "general",
-                                "process",
+                            webp_filename = f"{base_name}.webp"
+
+                            # Check if the WebP version actually exists in the _images directory
+                            webp_path = os.path.join(
+                                rocm_blogs.blogs_directory, "_images", webp_filename
                             )
+                            if os.path.exists(webp_path):
+                                image_filename = webp_filename
+                                log_message(
+                                    "info",
+                                    f"Using WebP version in fallback: {image_filename} instead of {os.path.basename(blog_entry.image_paths[0])}",
+                                    "general",
+                                    "process",
+                                )
+                            else:
+                                log_message(
+                                    "warning",
+                                    f"WebP version not found at {webp_path} in fallback, using generic image",
+                                    "general",
+                                    "process",
+                                )
+                                image_filename = "generic.webp"
                         blog_image_path = f"../../_images/{image_filename}"
                     else:
                         blog_image_path = "../../_images/generic.webp"
 
-                image_template_filled = image_html.replace(
-                    "{IMAGE}", blog_image_path
-                ).replace("{TITLE}", getattr(blog_entry, "blog_title", ""))
+                # Generate srcset for responsive images
+                srcset_entries = []
+                image_width = "1024"
+                image_height = "576"
+
+                # Build srcset based on available responsive variants
+                if image_filename and image_filename != "generic.webp":
+                    base_name_no_ext = os.path.splitext(image_filename)[0]
+                    # Use the same directory path format as the main image
+                    image_base_dir = os.path.dirname(blog_image_path)
+                    images_dir = os.path.join(rocm_blogs.blogs_directory, "_images")
+
+                    log_message(
+                        "info",
+                        f"Building srcset for {image_filename}: base_dir={image_base_dir}, images_dir={images_dir}",
+                        "general",
+                        "process",
+                    )
+
+                    # Add responsive variants - matching NVIDIA's proven breakpoints
+                    variants_found = 0
+
+                    # Get original image dimensions and validate path
+                    actual_image_width = 1024  # Default
+                    webp_full_path = os.path.join(images_dir, image_filename)
+
+                    try:
+                        if os.path.exists(webp_full_path):
+                            from PIL import Image
+
+                            with Image.open(webp_full_path) as img:
+                                image_width = str(img.width)
+                                image_height = str(img.height)
+                                actual_image_width = img.width
+                                log_message(
+                                    "info",
+                                    f"Original image dimensions: {image_width}x{image_height} for {image_filename}",
+                                )
+                        else:
+                            log_message(
+                                "warning",
+                                f"Original image not found at: {webp_full_path}",
+                            )
+                    except Exception as dim_error:
+                        log_message(
+                            "error", f"Could not get image dimensions: {dim_error}"
+                        )
+
+                    # Optimized responsive breakpoints for performance and bandwidth efficiency
+                    target_widths = [
+                        320,  # Mobile portrait (saves ~75% bandwidth vs desktop)
+                        480,  # Mobile landscape / small tablet
+                        640,  # Tablet portrait (good balance for mid-range devices)
+                        768,  # Large tablet / small desktop
+                        1024,  # Desktop standard (covers most laptops)
+                        1440,  # Large desktop / high-DPI mobile
+                        1920,  # Full HD desktop / 2x mobile retina
+                    ]
+
+                    for width in target_widths:
+                        # Skip widths larger than the original image
+                        if width > actual_image_width:
+                            continue
+
+                        variant_filename = f"{base_name_no_ext}-{width}w.webp"
+                        variant_file_path = os.path.join(images_dir, variant_filename)
+
+                        # Only add to srcset if the variant file actually exists
+                        if os.path.exists(variant_file_path):
+                            variant_path = f"{image_base_dir}/{variant_filename}"
+                            srcset_entries.append(f"{variant_path} {width}w")
+                            variants_found += 1
+                            log_message(
+                                "debug", f"Found responsive variant: {variant_filename}"
+                            )
+                        else:
+                            log_message(
+                                "debug",
+                                f"Responsive variant not found: {variant_file_path}",
+                            )
+
+                    # Always include the original image with its actual width if not already included
+                    if not any(
+                        f"{actual_image_width}w" in entry for entry in srcset_entries
+                    ):
+                        srcset_entries.append(
+                            f"{blog_image_path} {actual_image_width}w"
+                        )
+                        log_message(
+                            "info",
+                            f"Added original image to srcset: {blog_image_path} at {actual_image_width}w",
+                        )
+
+                    if srcset_entries:
+                        srcset_attr = ", ".join(srcset_entries)
+                        log_message(
+                            "info",
+                            f"Generated srcset with {variants_found} responsive variants for {image_filename}",
+                            "general",
+                            "process",
+                        )
+                    else:
+                        # Fallback if no responsive variants exist
+                        srcset_attr = f"{blog_image_path} 1920w"
+                        log_message(
+                            "warning",
+                            f"No responsive variants found for {image_filename}, using single image fallback",
+                            "general",
+                            "process",
+                        )
+                else:
+                    # For generic image, just use the single image
+                    srcset_attr = f"{blog_image_path} 1920w"
+                    log_message("debug", f"Using generic image srcset: {srcset_attr}")
+
+                log_message("debug", f"Final srcset: {srcset_attr}")
+
+                image_template_filled = (
+                    image_html.replace("{IMAGE}", blog_image_path)
+                    .replace("{TITLE}", getattr(blog_entry, "blog_title", ""))
+                    .replace("{SRCSET}", srcset_attr)
+                    .replace("{WIDTH}", image_width)
+                    .replace("{HEIGHT}", image_height)
+                )
             except Exception as image_path_error:
                 log_message(
                     "error",

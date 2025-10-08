@@ -1,9 +1,26 @@
 <div class="image-container">
-    <!-- Direct image loading for immediate display -->
-    <img 
-        src="{IMAGE}" 
-        alt="{TITLE}" 
-        class="responsive-image loaded" 
-        title="{TITLE}"
-    >
+    <picture>
+        <img 
+            width="{WIDTH}" 
+            height="{HEIGHT}" 
+            src="{IMAGE}" 
+            class="img-fluid responsive-image" 
+            alt="{TITLE}" 
+            decoding="async" 
+            loading="lazy"
+            srcset="{SRCSET}" 
+            sizes="(max-width: 320px) 320px,
+                   (max-width: 480px) 480px,
+                   (max-width: 640px) 640px,
+                   (max-width: 768px) 768px,
+                   (max-width: 1024px) 1024px,
+                   (max-width: 1440px) 1440px,
+                   1920px"
+            data-placeholder="{PLACEHOLDER}"
+            onerror="this.onerror=null; this.srcset=''; this.classList.add('image-error'); console.warn('Image failed:', this.src);"
+        >
+    </picture>
+    <noscript>
+        <img src="{IMAGE}" alt="{TITLE}" class="img-fluid" loading="eager">
+    </noscript>
 </div>

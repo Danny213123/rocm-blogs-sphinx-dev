@@ -349,6 +349,7 @@ blogpost: true
 blog_title: "{blog_title}"
 date: {date}
 author: "{author}"
+grid_thumbnail: '{grid_thumbnail}'
 thumbnail: '{thumbnail}'
 tags: {tags}
 category: {category}
@@ -765,6 +766,28 @@ myst:
                             metadata_log_file_handle,
                             f"Date: {extracted_metadata['date']}\n",
                         )
+
+                    if not extracted_metadata.get("grid_thumbnail"):
+                        log_message(
+                            "info",
+                            "Blog: {blog_filepath} does not have a grid_thumbnail specified: {extracted_metadata}",
+                            "general",
+                            "metadata",
+                        )
+
+                        if extracted_metadata.get("thumbnail"):
+                            extracted_grid_thumbnail = extracted_metadata[
+                                "thumbnail"
+                            ]
+                        else:
+                            extracted_grid_thumbnail = "generic.webp"
+                        
+                        safe_log_write(
+                            metadata_log_file_handle,
+                            f"INFO: No grid_thumbnail specified, using default: {extracted_grid_thumbnail}\n",
+                        )
+                    else:
+                        extracted_grid_thumbnail = extracted_metadata["grid_thumbnail"]
 
                     safe_log_write(metadata_log_file_handle, f"-" * 40 + "\n")
                     safe_log_write(
@@ -1222,6 +1245,7 @@ myst:
                         blog_title=extracted_metadata["blog_title"],
                         date=extracted_metadata["date"],
                         author=extracted_metadata["author"],
+                        grid_thumbnail=extracted_grid_thumbnail,
                         thumbnail=extracted_thumbnail,
                         og_image=og_image_extracted,
                         tags=extracted_metadata.get("tags", ""),

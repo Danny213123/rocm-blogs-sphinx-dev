@@ -99,7 +99,7 @@ def generate_grid(ROCmBlogs, blog, lazy_load=False, use_og=False) -> str:
         )
 
         try:
-            og_image = blog.grab_og_image()
+            og_image = blog.grab_og_grid_image()
             safe_log_write(
                 log_file_handle,
                 f"AUTHOR PAGE: Retrieved OpenGraph image: '{og_image}' for blog: '{title}'\n",
@@ -250,7 +250,16 @@ def generate_grid(ROCmBlogs, blog, lazy_load=False, use_og=False) -> str:
         )
 
         try:
-            image = blog.grab_image(ROCmBlogs)
+            try:
+                log_file_handle.write(
+                    f"REGULAR MODE: Attempting to call blog.grab_grid_image() for '{title}'\n"
+                )
+                image = blog.grab_grid_image(ROCmBlogs)
+                log_file_handle.write(
+                    f"REGULAR MODE: Successfully retrieved image from blog.grab_grid_image(): '{image}' (type: {type(image).__name__})\n"
+                )
+            except AttributeError:
+                image = blog.grab_image(ROCmBlogs)
             image_str = str(image)
 
             safe_log_write(

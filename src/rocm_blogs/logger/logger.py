@@ -75,11 +75,25 @@ def log_message(
                 print(formatted_message, file=sys.stderr)
 
 
+class NullLogHandle:
+    """A null log handle that accepts writes but doesn't do anything."""
+
+    def write(self, message: str) -> None:
+        pass
+
+    def flush(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 def create_step_log_file(step_name: str) -> tuple[Optional[str], Optional[Any]]:
     """Create log file for processing step only if logging is enabled."""
     try:
         if not is_logging_enabled_from_config():
-            return None, None
+            # Return a null handle instead of None to ensure consistent code paths
+            return None, NullLogHandle()
 
         logs_dir = Path("logs")
         logs_dir.mkdir(exist_ok=True)
@@ -91,8 +105,18 @@ def create_step_log_file(step_name: str) -> tuple[Optional[str], Optional[Any]]:
         log_file_handle = open(log_filepath, "w", encoding="utf-8")
 
         return str(log_filepath), log_file_handle
-    except Exception:
-        return None, None
+    except Exception as e:
+        # Log the exception to help debug if there are issues
+        try:
+            log_message(
+                "warning",
+                f"Failed to create step log file '{step_name}': {e}",
+                "logger",
+                "create_step_log_file",
+            )
+        except Exception:
+            pass  # Prevent infinite recursion if logging itself fails
+        return None, NullLogHandle()
 
 
 def safe_log_write(file_handle: Optional[Any], message: str) -> None:
@@ -100,8 +124,9 @@ def safe_log_write(file_handle: Optional[Any], message: str) -> None:
     if file_handle:
         try:
             file_handle.write(message)
-            file_handle.flush()
-        except (OSError, IOError):
+            if hasattr(file_handle, "flush"):
+                file_handle.flush()
+        except (OSError, IOError, AttributeError):
             pass
 
 
@@ -122,7 +147,7 @@ def safe_log_close(file_handle: Optional[Any]) -> None:
     if file_handle:
         try:
             file_handle.close()
-        except (OSError, IOError):
+        except (OSError, IOError, AttributeError):
             pass
 
 
@@ -137,6 +162,15 @@ def is_logging_enabled_from_config() -> bool:
             and current_module.structured_logger
         ):
             return True
+
+        if (
+            hasattr(current_module, "_current_sphinx_app")
+            and current_module._current_sphinx_app
+        ):
+            debug_enabled = getattr(
+                current_module._current_sphinx_app.config, "rocm_blogs_debug", False
+            )
+            return debug_enabled
 
         return os.environ.get("ROCM_BLOGS_DEBUG", "").lower() in ("true", "1", "yes")
     except Exception:

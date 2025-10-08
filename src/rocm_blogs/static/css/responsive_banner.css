@@ -1,0 +1,213 @@
+/* Responsive Banner Image Styles - NVIDIA-inspired */
+
+/* Container for banner images */
+.banner-image-container {
+    position: relative;
+    width: 100%;
+    max-width: 1920px;
+    margin: 0 auto;
+    overflow: hidden;
+    background-color: #f5f5f5;
+}
+
+/* Main responsive image styling */
+.attachment-full-page-width,
+.size-full-page-width,
+.wp-post-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-width: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* High priority loading */
+img[fetchpriority="high"] {
+    opacity: 1;
+}
+
+/* Loading state */
+.banner-image-container img {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Error state styling */
+.image-error {
+    opacity: 1;
+    background: linear-gradient(45deg, #f0f0f0 25%, #e0e0e0 25%, #e0e0e0 50%, #f0f0f0 50%, #f0f0f0 75%, #e0e0e0 75%, #e0e0e0);
+    background-size: 20px 20px;
+    min-height: 200px;
+}
+
+.image-error::before {
+    content: "Image failed to load";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #666;
+    font-size: 14px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Fallback image for no-JavaScript */
+.banner-fallback-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Responsive breakpoints matching srcset sizes */
+@media (max-width: 160px) {
+    .banner-image-container {
+        max-height: 90px;
+    }
+}
+
+@media (max-width: 179px) {
+    .banner-image-container {
+        max-height: 101px;
+    }
+}
+
+@media (max-width: 196px) {
+    .banner-image-container {
+        max-height: 110px;
+    }
+}
+
+@media (max-width: 300px) {
+    .banner-image-container {
+        max-height: 169px;
+    }
+}
+
+@media (max-width: 362px) {
+    .banner-image-container {
+        max-height: 204px;
+    }
+}
+
+@media (max-width: 500px) {
+    .banner-image-container {
+        max-height: 281px;
+    }
+}
+
+@media (max-width: 625px) {
+    .banner-image-container {
+        max-height: 352px;
+    }
+}
+
+@media (max-width: 645px) {
+    .banner-image-container {
+        max-height: 363px;
+    }
+}
+
+@media (max-width: 660px) {
+    .banner-image-container {
+        max-height: 370px;
+    }
+}
+
+@media (max-width: 768px) {
+    .banner-image-container {
+        max-height: 432px;
+    }
+}
+
+@media (max-width: 960px) {
+    .banner-image-container {
+        max-height: 540px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .banner-image-container {
+        max-height: 576px;
+    }
+    
+    .attachment-full-page-width,
+    .size-full-page-width,
+    .wp-post-image {
+        max-height: 576px;
+    }
+}
+
+@media (max-width: 1536px) {
+    .banner-image-container {
+        max-height: 864px;
+    }
+}
+
+@media (max-width: 1920px) {
+    .banner-image-container {
+        max-height: 1080px;
+    }
+}
+
+/* Aspect ratio preservation */
+.banner-image-container::before {
+    content: "";
+    display: block;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.banner-image-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Loading skeleton animation */
+.banner-image-container.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Performance optimizations */
+.banner-image-container img {
+    will-change: opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Print styles */
+@media print {
+    .banner-image-container {
+        max-height: none;
+        page-break-inside: avoid;
+    }
+    
+    .attachment-full-page-width,
+    .size-full-page-width,
+    .wp-post-image {
+        max-height: none;
+    }
+}

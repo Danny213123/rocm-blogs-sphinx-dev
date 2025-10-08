@@ -5,6 +5,7 @@ Banner slider generation for ROCm Blogs.
 import os
 import re
 import traceback
+import html
 
 from PIL import Image
 from sphinx.util import logging as sphinx_logging
@@ -13,34 +14,40 @@ from .logger.logger import *
 
 
 def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False) -> str:
-    """Generate a single banner slide for the index page."""
+    """Generate a single banner slide for a blog in NVIDIA-inspired style."""
 
-    log_message(
-        "info",
-        f"========== GENERATE_BANNER_SLIDE STARTED (index {index}) ==========",
-        "slide_generation",
-        "banner",
+    log_file_handle = None
+    if is_logging_enabled_from_config():
+        try:
+            logs_dir = Path("logs")
+            logs_dir.mkdir(exist_ok=True)
+            log_filepath = logs_dir / "banner_generation.log"
+
+            log_file_handle = open(log_filepath, "a", encoding="utf-8")
+        except Exception as log_error:
+            log_file_handle = None
+
+    log_file_handle.write(
+        f"\n========== GENERATE_BANNER_SLIDE (index {index}) ==========\n"
     )
-    log_message(
-        "info",
-        f"Input parameters - Index: {index}, Active: {active}",
-        "slide_generation",
-        "banner",
+    log_file_handle.write(
+        f"Input parameters - Index: {index}, Active: {active}\n"
     )
-    log_message("info", f"Blog object type: {type(blog)}", "slide_generation", "banner")
-    log_message(
-        "info",
-        f"Blog data - Title: '{getattr(blog, 'blog_title', 'None')}', Category: '{getattr(blog, 'category', 'None')}', Has thumbnail: {hasattr(blog, 'thumbnail')}",
-        "slide_generation",
-        "banner",
+    log_file_handle.write(
+        f"Blog object type: {type(blog)}\n"
+    )
+    log_file_handle.write(
+        f"Blog data - Title: '{getattr(blog, 'blog_title', 'None')}', Category: '{getattr(blog, 'category', 'None')}', Has thumbnail: {hasattr(blog, 'thumbnail')}\n"
     )
 
+    # Validate blog object
     if not blog:
         log_message(
             "error", "Blog object is None or empty!", "slide_generation", "banner"
         )
         return ""
 
+    # Log all blog attributes for debugging
     blog_attrs = [attr for attr in dir(blog) if not attr.startswith("_")]
     log_message(
         "debug", f"Blog object attributes: {blog_attrs}", "slide_generation", "banner"
@@ -54,10 +61,11 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    image = "./_images/generic.webp"
-    href = "#"
-    description = "Explore the latest insights and developments in ROCm technology."
-    author = "."
+    # Initialize variables to prevent UnboundLocalError
+    image = "./_images/generic.webp"  # Default fallback
+    href = "#"  # Default fallback
+    description = "Explore the latest insights and developments in ROCm technology."  # Default fallback
+    author = "."  # Default fallback
 
     slide_template = """
 <div class="banner-slide{active_class}">
@@ -116,10 +124,10 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         return ""
 
+    # Escape HTML entities to prevent breaking the template
     log_message(
         "info", f"Step 3: Escaping HTML entities in title", "slide_generation", "banner"
     )
-    import html
 
     title_escaped = html.escape(title)
     log_message(
@@ -135,6 +143,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
     category = getattr(blog, "category", "ROCm Blog")
     category_link = category.lower().replace(" ", "-")
 
+    # split, remove special characters, and convert to lowercase then join
     category_link = "-".join(
         re.sub(r"[^a-z0-9]+", "-", part.strip().lower()) for part in category.split("-")
     ).lower()
@@ -151,8 +160,10 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         thumbnail_path = blog.thumbnail
         thumbnail_base = os.path.splitext(thumbnail_path)[0]
 
+        # Try to find the best available thumbnail format
         thumbnail_found = False
 
+        # Priority order: webp, jpg, jpeg, png (webp is preferred)
         extensions_to_try = [".webp", ".jpg", ".jpeg", ".png"]
         search_paths = [
             rocmblogs.blogs_directory,
@@ -200,6 +211,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
+    # Log blog image state before grab_image
     log_message(
         "debug",
         f"Before grab_image - Has image_paths: {hasattr(blog, 'image_paths')}",
@@ -237,6 +249,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         return ""
 
+    # Log blog image state after grab_image
     log_message(
         "debug",
         f"After grab_image - Has image_paths: {hasattr(blog, 'image_paths')}",
@@ -260,11 +273,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             "banner",
         )
         image_filename = os.path.basename(blog.image_paths[0])
-        log_message(
-            "info",
-            f"Step 6b: Using image filename: '{image_filename}'",
-            "slide_generation",
-            "banner",
+        log_file_handle.write(
+            f"Step 6b: Initial image filename extracted: '{image_filename}'\n"
         )
 
         if any(
@@ -280,11 +290,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             ):
                 image_filename = webp_filename
                 webp_exists = True
-                log_message(
-                    "info",
-                    f"Using WebP version for banner slide image: {webp_filename}",
-                    "general",
-                    "banner",
+                log_file_handle.write(
+                    f"Using WebP version for banner slide image: {webp_filename}\n"
                 )
 
             elif os.path.exists(
@@ -292,11 +299,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             ):
                 image_filename = webp_filename
                 webp_exists = True
-                log_message(
-                    "info",
-                    f"Using WebP version for banner slide image: {webp_filename}",
-                    "general",
-                    "banner",
+                log_file_handle.write(
+                    f"Using WebP version for banner slide image: {webp_filename}\n"
                 )
 
             elif os.path.exists(
@@ -304,19 +308,13 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             ):
                 image_filename = webp_filename
                 webp_exists = True
-                log_message(
-                    "info",
-                    f"Using WebP version for banner slide image: {webp_filename}",
-                    "general",
-                    "banner",
+                log_file_handle.write(
+                    f"Using WebP version for banner slide image: {webp_filename}\n"
                 )
 
             if not webp_exists:
-                log_message(
-                    "info",
-                    f"WebP version not found for {image_filename}, attempting to convert",
-                    "general",
-                    "banner",
+                log_file_handle.write(
+                    f"Step 6c: Final image path set to: '{image}'\n"
                 )
 
                 original_image_path = None
@@ -364,11 +362,8 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
                                 webp_img = webp_img.resize(
                                     (new_width, new_height), resample=Image.LANCZOS
                                 )
-                                log_message(
-                                    "info",
-                                    f"Resized image from {original_width}x{original_height} to {new_width}x{new_height}",
-                                    "general",
-                                    "banner",
+                                log_file_handle.write(
+                                    f"Step 6c: Final image path set to: '{image}'\n"
                                 )
 
                             webp_path = (
@@ -379,36 +374,42 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
                             )
 
                             image_filename = webp_filename
-                            log_message(
-                                "info",
-                                f"Successfully converted {image_filename} to WebP: {webp_path}",
-                                "general",
-                                "banner",
+                            log_file_handle.write(
+                                f"Step 6d: Image processing completed successfully for: '{image_filename}'\n"
                             )
                     except Exception as error:
-                        log_message(
-                            "warning",
-                            f"Failed to convert {image_filename} to WebP: {error}",
+                        log_file_handle.write(
+                            f"Step 6e: Failed to convert {image_filename} to WebP: {error}\n"
                         )
-            image = f"./_images/{image_filename}"
-            log_message(
-                "info",
-                f"Step 6c: Final image path set to: '{image}'",
-                "slide_generation",
-                "banner",
+            try:
+                image = blog.grab_grid_image(rocmblogs)
+                image = str(image).replace("\\", "/")
+                # Extract just the filename and use _images directory
+                image_basename = os.path.basename(image)
+                image = f"./_images/{image_basename}"
+                log_file_handle.write(
+                    f"grab_grid_image() returned image path: {image}\n"
+                )
+            except Exception as thumb_error:
+                log_file_handle.write(
+                    f"Error in grab_grid_image(): {thumb_error}\n"
+                )
+                log_file_handle.write(
+                    f"Step 6b: Falling back to default image path: './_images/{image_filename}'\n"
+                )
+                image = f"./_images/{image_filename}"
+            log_file_handle.write(
+                f"Step 6c: Final image path set to: '{image}'\n"
             )
-            log_message(
-                "debug",
-                f"Image processing completed successfully for: '{image_filename}'",
-                "slide_generation",
-                "banner",
+            log_file_handle.write(
+                f"Step 6d: Image processing completed successfully for: '{image_filename}'\n"
             )
     else:
-        log_message(
-            "warning",
-            f"Step 6a: No image_paths found for blog '{title}'",
-            "slide_generation",
-            "banner",
+        log_file_handle.write(
+            f"Step 6a: No image_paths found for blog '{title}'\n"
+        )
+        log_file_handle.write(
+            f"Step 6b: Falling back to default image path: './_images/{image_filename}'\n"
         )
         generic_webp_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
@@ -440,8 +441,10 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
-    href = "#"
+    # Try to get href from blog object, with fallback URL generation
+    href = "#"  # Default fallback
 
+    # First try to get the blog URL directly if available
     if hasattr(blog, "blog_url") and blog.blog_url:
         href = f".{blog.blog_url}"
         log_message(
@@ -451,6 +454,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             "banner",
         )
     else:
+        # Try the existing grab_href method
         try:
             raw_href = blog.grab_href()
             log_message(
@@ -594,6 +598,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         "banner",
     )
 
+    # Log all template variables before formatting
     log_message(
         "info", f"Step 11: Template variables summary:", "slide_generation", "banner"
     )
@@ -621,7 +626,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
         )
         result = slide_template.format(
             active_class=active_class,
-            title=title_escaped,
+            title=title_escaped,  # Use escaped title
             category=category,
             category_url=category_url,
             image=image,
@@ -636,6 +641,7 @@ def generate_banner_slide(blog, rocmblogs, index: int = 0, active: bool = False)
             "banner",
         )
 
+        # Log a preview of the generated HTML
         html_preview = result[:300] + "..." if len(result) > 300 else result
         log_message(
             "debug",

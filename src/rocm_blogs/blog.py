@@ -357,10 +357,69 @@ class Blog:
                 author_elements.append(author)
 
         return ", ".join(author_elements)
+    
+    def grab_grid_image(self, rocmblogs) -> pathlib.Path:
+        """Find and return the blog's grid image path."""
+
+        image = getattr(self, "grid_thumbnail", None)
+
+        log_message(
+            "debug",
+            f"grab_grid_image called for blog '{getattr(self, 'blog_title', 'unknown')}'",
+            "general",
+            "blog",
+        )
+
+        if not image:
+            # Fall back to the regular thumbnail if grid_thumbnail is not set
+            return self.grab_image(rocmblogs)
+        else:
+            # verify if the specified grid_thumbnail exists
+            if "/" in image or "\\" in image:
+                log_message(
+                    "debug", f"Extracting basename from path '{image}'", "general", "blog"
+                )
+                image = os.path.basename(image)
+                log_message("debug", f"Basename extracted: '{image}'", "general", "blog")
+
+            # check if image exists in blogs/images or blog-specific directories
+ 
+
+            if os.path.isabs(image) and os.path.exists(image):
+                full_image_path = pathlib.Path(image)
+                self.save_image_path(str(full_image_path))
+                return self._get_relative_path(full_image_path, rocmblogs.blogs_directory)
+            full_image_path = self._find_image_in_directories(
+                image, rocmblogs.blogs_directory
+            )
+            if not full_image_path:
+                log_message(
+                    "warning",
+                    f"Grid image '{image}' not found for blog '{getattr(self, 'blog_title', 'unknown')}', using regular thumbnail",
+                    "general",
+                    "blog",
+                )
+                return self.grab_image(rocmblogs)
+        # Save the full image path (not just the basename)
+        self.save_image_path(str(full_image_path))
+        log_message(
+            "info",
+            f"Found grid image at: {full_image_path} for blog '{getattr(self, 'blog_title', 'unknown')}'",
+            "general",
+            "blog",
+        )
+        return self._get_relative_path(full_image_path, rocmblogs.blogs_directory)
 
     def grab_image(self, rocmblogs) -> pathlib.Path:
         """Find and return blog image path."""
         image = getattr(self, "thumbnail", None)
+
+        log_message(
+            "debug",
+            f"grab_image called for blog '{getattr(self, 'blog_title', 'unknown')}' with thumbnail='{image}'",
+            "general",
+            "blog",
+        )
 
         if not image:
             # First check if generic.webp exists in blogs/images directory
@@ -385,26 +444,47 @@ class Blog:
             # static/images/generic.webp
             if blogs_generic_webp:
                 self.image = "generic.webp"
-                self.save_image_path("generic.webp")
+                self.save_image_path(blogs_generic_webp)
                 return pathlib.Path("./images/generic.webp")
             elif static_generic_webp:
                 self.image = "generic.webp"
-                self.save_image_path("generic.webp")
+                self.save_image_path(static_generic_webp_path)
                 return pathlib.Path("./images/generic.webp")
             else:
                 # Fall back to generic.jpg if no WebP version is available
                 self.image = "generic.jpg"
-                self.save_image_path("generic.jpg")
+                generic_jpg_path = os.path.join(
+                    (
+                        rocmblogs.blogs_directory
+                        if hasattr(rocmblogs, "blogs_directory")
+                        and rocmblogs.blogs_directory
+                        else ""
+                    ),
+                    "images",
+                    "generic.jpg",
+                )
+                if not os.path.exists(generic_jpg_path):
+                    generic_jpg_path = os.path.join(
+                        os.path.dirname(os.path.dirname(__file__)),
+                        "static",
+                        "images",
+                        "generic.jpg",
+                    )
+                self.save_image_path(generic_jpg_path)
                 return pathlib.Path("./images/generic.jpg")
 
         # Extract just the filename if a path is provided
         if "/" in image or "\\" in image:
+            log_message(
+                "debug", f"Extracting basename from path '{image}'", "general", "blog"
+            )
             image = os.path.basename(image)
+            log_message("debug", f"Basename extracted: '{image}'", "general", "blog")
 
         # Check if it's an absolute path
         if os.path.isabs(image) and os.path.exists(image):
             full_image_path = pathlib.Path(image)
-            self.save_image_path(os.path.basename(str(full_image_path)))
+            self.save_image_path(str(full_image_path))
             return self._get_relative_path(full_image_path, rocmblogs.blogs_directory)
 
         # Find the image in various locations
@@ -413,6 +493,12 @@ class Blog:
         )
 
         if not full_image_path:
+            log_message(
+                "warning",
+                f"Image '{image}' not found for blog '{getattr(self, 'blog_title', 'unknown')}', using generic image",
+                "general",
+                "blog",
+            )
             # Check if generic.webp exists
             generic_webp_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)),
@@ -422,16 +508,28 @@ class Blog:
             )
             if os.path.exists(generic_webp_path):
                 self.image = "generic.webp"
-                self.save_image_path("generic.webp")
+                self.save_image_path(generic_webp_path)
                 return pathlib.Path("./images/generic.webp")
             else:
                 self.image = "generic.jpg"
-                self.save_image_path("generic.jpg")
+                generic_jpg_fallback = os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    "static",
+                    "images",
+                    "generic.jpg",
+                )
+                self.save_image_path(generic_jpg_fallback)
                 return pathlib.Path("./images/generic.jpg")
 
-        # Save the image path and return the relative path
-        image_name = os.path.basename(str(full_image_path))
-        self.save_image_path(image_name)
+        # Save the full image path (not just the basename)
+        self.save_image_path(str(full_image_path))
+
+        log_message(
+            "info",
+            f"Found image at: {full_image_path} for blog '{getattr(self, 'blog_title', 'unknown')}'",
+            "general",
+            "blog",
+        )
 
         return self._get_relative_path(full_image_path, rocmblogs.blogs_directory)
 
@@ -441,6 +539,13 @@ class Blog:
         """Search for image in various directories."""
         blog_dir = pathlib.Path(self.file_path).parent
         blogs_dir = pathlib.Path(blogs_directory)
+
+        log_message(
+            "info",
+            f"Searching for image '{image}' for blog '{self.file_path}'",
+            "general",
+            "blog",
+        )
 
         # Check if there's a WebP version of the image
         image_base, image_ext = os.path.splitext(image)
@@ -497,7 +602,14 @@ class Blog:
                 if str(path).lower().endswith(".webp"):
                     log_message(
                         "info",
-                        f"Using WebP version for image: {path}",
+                        f"Found WebP image at: {path}",
+                        "general",
+                        "blog",
+                    )
+                else:
+                    log_message(
+                        "info",
+                        f"Found image at: {path}",
                         "general",
                         "blog",
                     )
@@ -569,17 +681,31 @@ class Blog:
 
                     return img_file
 
+        log_message(
+            "warning",
+            f"Image '{image}' not found for blog '{self.file_path}' after checking all paths",
+            "general",
+            "blog",
+        )
         return None
 
     def _get_relative_path(
         self, full_path: pathlib.Path, base_dir: str
     ) -> pathlib.Path:
         """Convert an absolute path to a relative path."""
+        cache_key = f"{str(full_path)}::{str(base_dir)}"
+
+        if cache_key in _relative_path_cache:
+            return pathlib.Path(_relative_path_cache[cache_key])
+
         relative_path = os.path.relpath(str(full_path), str(base_dir))
+
         relative_path = relative_path.replace("\\", "/")
 
         if not relative_path.startswith("./"):
             relative_path = "./" + relative_path
+
+        _relative_path_cache[cache_key] = relative_path
 
         return pathlib.Path(relative_path)
 

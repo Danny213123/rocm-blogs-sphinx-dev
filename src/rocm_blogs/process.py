@@ -1355,7 +1355,7 @@ def process_single_blog(blog_entry, rocm_blogs):
                     )
 
                     if blog_entry.image_paths:
-                        full_image_path = blog_entry.image_paths[0]
+                        full_image_path = blog_entry.image_paths[-1]
                         image_filename = os.path.basename(full_image_path)
                         log_message(
                             "info",

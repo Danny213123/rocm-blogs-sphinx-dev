@@ -1854,9 +1854,9 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             )
 
         # Generate banner slider content
-        banner_content = _generate_banner_slider(
-            rocm_blogs, banner_blogs, []
-        )  # Don't pass used_blogs to avoid double-adding
+        #   banner_content = _generate_banner_slider(
+        #       rocm_blogs, banner_blogs, []
+        #   )  # Don't pass used_blogs to avoid double-adding
 
         if log_file_handle:
             safe_log_write(log_file_handle, "Banner slider generation completed\n")
@@ -2147,7 +2147,6 @@ def update_index_file(sphinx_app: Sphinx, rocm_blogs: ROCmBlogs = None) -> None:
             .replace("{application_grid_items}", "\n".join(application_grid_items))
             .replace("{software_grid_items}", "\n".join(software_grid_items))
             .replace("{featured_grid_items}", "\n".join(featured_grid_items))
-            .replace("{banner_slider}", banner_content)
             .replace("{external_content_items}", external_content_html)
         )
 
